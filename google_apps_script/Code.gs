@@ -1,9 +1,9 @@
 // ─── CONFIGURATION ──────────────────────────────────
 // 1. Create a folder in Google Drive for screenshots.
 // 2. Open that folder, copy the ID from the URL (after /folders/) and paste it below.
-const DRIVE_FOLDER_ID = '1Sp-G7ySxEhC0_TJqSEn7VomRVBBuCyWh';
+const DRIVE_FOLDER_ID = '1ZY5NpRl-m3OBOebozk_ny_w4uy92u9SG';
 // 3. Enter the email address where you want to receive registration alerts.
-const ADMIN_EMAIL = 'arasukirubanandhan2430035@ssn.edu.in';
+const ADMIN_EMAIL = 'formgeniepro@gmail.com';
 
 // Sheet Names
 const SHEET_USERS = 'Users';
