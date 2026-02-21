@@ -236,7 +236,7 @@ export const CreditRequestModal: React.FC<CreditRequestModalProps> = ({ isOpen, 
                                         }}>
                                             <img src={qrUrl} alt="Payment QR" style={{ width: '150px', height: '150px', objectFit: 'contain' }} />
                                         </div>
-                                        <p style={{ fontSize: '11px', color: '#6b6580', marginTop: '12px', fontStyle: 'italic', lineHeight: 1.5 }}>
+                                        <p style={{ fontSize: '11px', color: '#ef4444', marginTop: '12px', fontStyle: 'italic', lineHeight: 1.5 }}>
                                             * Kindly be informed that the payments collected are solely intended for covering Google Gemini API usage costs.
                                         </p>
                                     </div>

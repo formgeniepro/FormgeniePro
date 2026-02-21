@@ -230,7 +230,7 @@ export const RegisterPage: React.FC = () => {
                                 }}>
                                     <img src={qrUrl} alt="Payment QR Code" style={{ width: '180px', height: '180px', objectFit: 'contain' }} />
                                 </div>
-                                <p style={{ fontSize: '12px', color: '#6b6580', marginTop: '12px', fontStyle: 'italic', lineHeight: 1.5 }}>
+                                <p style={{ fontSize: '12px', color: '#ef4444', marginTop: '12px', fontStyle: 'italic', lineHeight: 1.5 }}>
                                     * Kindly be informed that the payments collected are solely intended for covering Google Gemini API usage costs.
                                 </p>
                             </div>
