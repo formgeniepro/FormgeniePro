@@ -63,7 +63,7 @@ export const LoginPage: React.FC = () => {
                             display: 'inline-flex', padding: '0', borderRadius: '14px',
                             background: 'transparent', marginBottom: '12px',
                         }}>
-                            <img src="https://lh3.googleusercontent.com/d/1w_6oSf25-rUAkZbuIqtX6wfYmmDD46Rl" alt="Form Genie Logo" style={{ height: 60, width: 'auto', objectFit: 'contain' }} />
+                            <img src="/logo.png" alt="Form Genie Logo" style={{ height: 60, width: 'auto', objectFit: 'contain' }} />
                         </div>
                         <h1 style={{ fontSize: '24px', fontWeight: 700, color: '#1e1b2e', margin: '8px 0 4px' }}>
                             Welcome Back
