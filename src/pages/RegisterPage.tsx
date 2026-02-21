@@ -104,10 +104,10 @@ export const RegisterPage: React.FC = () => {
                     {/* Header */}
                     <div style={{ textAlign: 'center', marginBottom: '28px' }}>
                         <div style={{
-                            display: 'inline-flex', padding: '10px', borderRadius: '12px',
-                            background: 'linear-gradient(135deg, #4285F4, #5a9cf5)', marginBottom: '10px',
+                            display: 'inline-flex', padding: '0', borderRadius: '12px',
+                            background: 'transparent', marginBottom: '10px',
                         }}>
-                            <Sparkles style={{ width: 22, height: 22, color: 'white' }} />
+                            <img src="https://lh3.googleusercontent.com/d/1w_6oSf25-rUAkZbuIqtX6wfYmmDD46Rl" alt="Form Genie Logo" style={{ width: 44, height: 44, objectFit: 'contain' }} />
                         </div>
                         <h1 style={{ fontSize: '22px', fontWeight: 700, color: '#1e1b2e', margin: '8px 0 4px' }}>
                             Create Account

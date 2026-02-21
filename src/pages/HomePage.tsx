@@ -52,10 +52,10 @@ export const HomePage: React.FC = () => {
                     filter: 'blur(24px)', transform: 'scale(1.8)',
                 }} />
                 <div style={{
-                    position: 'relative', background: 'linear-gradient(135deg, #4285F4, #5a9cf5)',
-                    padding: '20px', borderRadius: '20px', boxShadow: '0 8px 32px rgba(66,133,244,0.2)',
+                    position: 'relative', background: 'transparent',
+                    padding: '0', borderRadius: '20px', boxShadow: 'none',
                 }}>
-                    <Sparkles style={{ width: 40, height: 40, color: 'white' }} />
+                    <img src="https://lh3.googleusercontent.com/d/1w_6oSf25-rUAkZbuIqtX6wfYmmDD46Rl" alt="Form Genie Logo" style={{ width: 80, height: 80, objectFit: 'contain' }} />
                 </div>
             </motion.div>
 

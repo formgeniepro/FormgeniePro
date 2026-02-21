@@ -60,10 +60,10 @@ export const LoginPage: React.FC = () => {
                     {/* Logo */}
                     <div style={{ textAlign: 'center', marginBottom: '32px' }}>
                         <div style={{
-                            display: 'inline-flex', padding: '12px', borderRadius: '14px',
-                            background: 'linear-gradient(135deg, #4285F4, #5a9cf5)', marginBottom: '12px',
+                            display: 'inline-flex', padding: '0', borderRadius: '14px',
+                            background: 'transparent', marginBottom: '12px',
                         }}>
-                            <Sparkles style={{ width: 24, height: 24, color: 'white' }} />
+                            <img src="https://lh3.googleusercontent.com/d/1w_6oSf25-rUAkZbuIqtX6wfYmmDD46Rl" alt="Form Genie Logo" style={{ width: 48, height: 48, objectFit: 'contain' }} />
                         </div>
                         <h1 style={{ fontSize: '24px', fontWeight: 700, color: '#1e1b2e', margin: '8px 0 4px' }}>
                             Welcome Back
