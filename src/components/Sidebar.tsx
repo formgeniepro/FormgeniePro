@@ -83,7 +83,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen = false, onClose }) => 
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '32px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '0 8px' }}>
                         <div style={{ background: 'transparent', padding: '0', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            <img src="https://lh3.googleusercontent.com/d/1w_6oSf25-rUAkZbuIqtX6wfYmmDD46Rl" alt="Form Genie Logo" style={{ width: 40, height: 40, objectFit: 'contain' }} />
+                            <img src="https://lh3.googleusercontent.com/d/1w_6oSf25-rUAkZbuIqtX6wfYmmDD46Rl" alt="Form Genie Logo" style={{ height: 36, width: 'auto', objectFit: 'contain' }} />
                         </div>
                         <div>
                             <h2 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: '#1e1b2e' }}>Form Genie</h2>

@@ -55,7 +55,7 @@ export const HomePage: React.FC = () => {
                     position: 'relative', background: 'transparent',
                     padding: '0', borderRadius: '20px', boxShadow: 'none',
                 }}>
-                    <img src="https://lh3.googleusercontent.com/d/1w_6oSf25-rUAkZbuIqtX6wfYmmDD46Rl" alt="Form Genie Logo" style={{ width: 80, height: 80, objectFit: 'contain' }} />
+                    <img src="https://lh3.googleusercontent.com/d/1w_6oSf25-rUAkZbuIqtX6wfYmmDD46Rl" alt="Form Genie Logo" style={{ height: 100, width: 'auto', objectFit: 'contain' }} />
                 </div>
             </motion.div>
 
