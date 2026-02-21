@@ -1,4 +1,5 @@
 import React from 'react';
+import logoImg from '../assets/logo.png';
 import { useNavigate } from 'react-router-dom';
 import { Sparkles, LogIn, UserPlus } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -55,7 +56,7 @@ export const HomePage: React.FC = () => {
                     position: 'relative', background: 'transparent',
                     padding: '0', borderRadius: '20px', boxShadow: 'none',
                 }}>
-                    <img src="/logo.png" alt="Form Genie Logo" style={{ height: 100, width: 'auto', objectFit: 'contain' }} />
+                    <img src={logoImg} alt="Form Genie Logo" style={{ height: 100, width: 'auto', objectFit: 'contain' }} />
                 </div>
             </motion.div>
 

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import logoImg from '../assets/logo.png';
 import { Routes, Route, Navigate, Link } from 'react-router-dom';
 import { Sidebar } from '../components/Sidebar';
 import { useAuth } from '../contexts/AuthContext';
@@ -320,7 +321,7 @@ export const DashboardPage: React.FC = () => {
             <div className="mobile-header">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                     <div style={{ background: 'transparent', padding: '0', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <img src="/logo.png" alt="Form Genie Logo" style={{ height: 28, width: 'auto', objectFit: 'contain' }} />
+                        <img src={logoImg} alt="Form Genie Logo" style={{ height: 28, width: 'auto', objectFit: 'contain' }} />
                     </div>
                     <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#1e1b2e', margin: 0 }}>Form Genie</h2>
                 </div>

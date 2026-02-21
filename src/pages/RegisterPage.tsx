@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import logoImg from '../assets/logo.png';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { UserPlus, AlertCircle, CheckCircle, Upload, Image, Sparkles } from 'lucide-react';
@@ -107,7 +108,7 @@ export const RegisterPage: React.FC = () => {
                             display: 'inline-flex', padding: '0', borderRadius: '12px',
                             background: 'transparent', marginBottom: '10px',
                         }}>
-                            <img src="/logo.png" alt="Form Genie Logo" style={{ height: 56, width: 'auto', objectFit: 'contain' }} />
+                            <img src={logoImg} alt="Form Genie Logo" style={{ height: 56, width: 'auto', objectFit: 'contain' }} />
                         </div>
                         <h1 style={{ fontSize: '22px', fontWeight: 700, color: '#1e1b2e', margin: '8px 0 4px' }}>
                             Create Account

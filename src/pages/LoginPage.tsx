@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import logoImg from '../assets/logo.png';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { LogIn, AlertCircle, Clock, XCircle, Sparkles } from 'lucide-react';
@@ -63,7 +64,7 @@ export const LoginPage: React.FC = () => {
                             display: 'inline-flex', padding: '0', borderRadius: '14px',
                             background: 'transparent', marginBottom: '12px',
                         }}>
-                            <img src="/logo.png" alt="Form Genie Logo" style={{ height: 60, width: 'auto', objectFit: 'contain' }} />
+                            <img src={logoImg} alt="Form Genie Logo" style={{ height: 60, width: 'auto', objectFit: 'contain' }} />
                         </div>
                         <h1 style={{ fontSize: '24px', fontWeight: 700, color: '#1e1b2e', margin: '8px 0 4px' }}>
                             Welcome Back
