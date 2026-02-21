@@ -86,10 +86,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen = false, onClose }) => 
                         <div style={{ background: 'transparent', padding: '0', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             <img src={logoImg} alt="Form Genie Logo" style={{ height: 36, width: 'auto', objectFit: 'contain' }} />
                         </div>
-                        <div>
-                            <h2 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: '#1e1b2e' }}>Form Genie</h2>
-                            <p style={{ margin: 0, fontSize: '11px', color: '#9e97b0', fontWeight: 500 }}>Smart Automation</p>
-                        </div>
                     </div>
                     {/* Mobile Close Button */}
                     <button
