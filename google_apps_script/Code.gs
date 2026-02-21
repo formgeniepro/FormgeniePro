@@ -98,6 +98,8 @@ function doPost(e) {
       case 'rejectCreditRequest': return handleRejectCreditRequest(data);
       case 'uploadGuidelines': return handleUploadGuidelines(data);
       case 'getGuidelines': return handleGetGuidelines(data);
+      case 'getLimitations': return handleGetLimitations(data);
+      case 'updateLimitations': return handleUpdateLimitations(data);
       default: return errorResponse('Invalid action');
     }
   } catch (error) {
@@ -656,6 +658,50 @@ function handleGetGuidelines(data) {
     }
   }
   return successResponse({ url: '' });
+}
+
+// ─── LIMITATIONS HANDLERS ───────────────────────────
+
+function handleUpdateLimitations(data) {
+  if (data.limitations === undefined) return errorResponse('No limitations provided');
+
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var settingsSheet = ss.getSheetByName(SHEET_SETTINGS);
+  if (!settingsSheet) {
+    settingsSheet = ss.insertSheet(SHEET_SETTINGS);
+    settingsSheet.appendRow(['key', 'value']);
+  }
+
+  var rows = settingsSheet.getDataRange().getValues();
+  var found = false;
+  
+  for (var i = 1; i < rows.length; i++) {
+    if (rows[i][0] === 'system_limitations') {
+      settingsSheet.getRange(i + 1, 2).setValue(data.limitations);
+      found = true;
+      break;
+    }
+  }
+
+  if (!found) {
+    settingsSheet.appendRow(['system_limitations', data.limitations]);
+  }
+
+  return successResponse({ message: 'Limitations updated successfully' });
+}
+
+function handleGetLimitations(data) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var settingsSheet = ss.getSheetByName(SHEET_SETTINGS);
+  if (!settingsSheet) return successResponse({ limitations: '' });
+
+  var rows = settingsSheet.getDataRange().getValues();
+  for (var i = 1; i < rows.length; i++) {
+    if (rows[i][0] === 'system_limitations') {
+      return successResponse({ limitations: rows[i][1] });
+    }
+  }
+  return successResponse({ limitations: '' });
 }
 
 // ─── UTILS ──────────────────────────────────────────

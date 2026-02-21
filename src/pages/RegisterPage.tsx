@@ -5,7 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { UserPlus, AlertCircle, CheckCircle, Upload, Image, Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Spinner } from '../components/Spinner';
-import { getQrCodeUrl } from '../services/api';
+import { getQrCodeUrl, settingsApi } from '../services/api';
 
 const PLANS = [
     { value: 'starter', label: 'Starter – 150 submissions (₹100)', credits: 150 },
@@ -25,6 +25,15 @@ export const RegisterPage: React.FC = () => {
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const [loading, setLoading] = useState(false);
+
+    const [limitations, setLimitations] = useState<string>('');
+    const [fetchingLimitations, setFetchingLimitations] = useState(true);
+
+    useEffect(() => {
+        settingsApi.getLimitations().then(data => {
+            setLimitations(data.limitations || '');
+        }).catch(() => { }).finally(() => setFetchingLimitations(false));
+    }, []);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         setForm({ ...form, [e.target.name]: e.target.value });
@@ -145,6 +154,22 @@ export const RegisterPage: React.FC = () => {
                     )}
 
                     {/* Form */}
+
+                    {/* System Limitations */}
+                    {!fetchingLimitations && limitations && (
+                        <div style={{ marginBottom: '24px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '12px', padding: '16px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                                <AlertCircle style={{ width: 18, height: 18, color: '#d97706' }} />
+                                <span style={{ fontSize: '14px', fontWeight: 700, color: '#92400e' }}>System Limitations</span>
+                            </div>
+                            <ul style={{ margin: 0, paddingLeft: '24px', color: '#92400e', fontSize: '13px', lineHeight: 1.6 }}>
+                                {limitations.split('\n').filter(line => line.trim() !== '').map((line, idx) => (
+                                    <li key={idx} style={{ marginBottom: '4px' }}>{line}</li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
+
                     <form onSubmit={handleSubmit}>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
                             <div>

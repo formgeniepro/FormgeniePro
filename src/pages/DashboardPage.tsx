@@ -8,7 +8,7 @@ import { fetchUrlContent } from '../services/proxyService';
 import { parseFormHTML } from '../services/parserService';
 import { FormPreview } from '../components/FormPreview';
 import { Spinner } from '../components/Spinner';
-import { creditsApi, guidelinesApi } from '../services/api';
+import { creditsApi, guidelinesApi, settingsApi } from '../services/api';
 import { Link2, FileCode2, AlertCircle, Sparkles, Zap, CreditCard, TrendingUp, Activity, Menu, FileText } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -107,11 +107,17 @@ const AutomateForm: React.FC = () => {
     const [status, setStatus] = useState<GenerationState>({ status: 'idle' });
     const [guidelinesUrl, setGuidelinesUrl] = useState('');
     const [guidelinesLoading, setGuidelinesLoading] = useState(true);
+    const [limitations, setLimitations] = useState('');
+    const [limitationsLoading, setLimitationsLoading] = useState(true);
 
     useEffect(() => {
         guidelinesApi.get().then(data => {
             setGuidelinesUrl(data.url || '');
         }).catch(() => { }).finally(() => setGuidelinesLoading(false));
+
+        settingsApi.getLimitations().then(data => {
+            setLimitations(data.limitations || '');
+        }).catch(() => { }).finally(() => setLimitationsLoading(false));
     }, []);
 
     const handleImport = async () => {
@@ -307,6 +313,31 @@ const AutomateForm: React.FC = () => {
                     </div>
                 </div>
             </div>
+
+            {/* System Limitations Section */}
+            {!limitationsLoading && limitations && (
+                <div style={{ marginTop: '28px' }}>
+                    <div style={{
+                        display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px',
+                    }}>
+                        <AlertCircle style={{ width: 20, height: 20, color: '#f59e0b' }} />
+                        <h2 style={{ fontSize: '18px', fontWeight: 700, color: '#1e1b2e', margin: 0 }}>
+                            ⚠️ System Limitations
+                        </h2>
+                    </div>
+
+                    <div style={{
+                        background: '#fffbeb', borderRadius: '16px', border: '1px solid #fde68a',
+                        padding: '24px', boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
+                    }}>
+                        <ul style={{ margin: 0, paddingLeft: '24px', color: '#92400e', fontSize: '14px', lineHeight: 1.6 }}>
+                            {limitations.split('\n').filter(line => line.trim() !== '').map((line, idx) => (
+                                <li key={idx} style={{ marginBottom: '8px' }}>{line}</li>
+                            ))}
+                        </ul>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

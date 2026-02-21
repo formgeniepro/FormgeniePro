@@ -196,11 +196,16 @@ export const creditRequestsApi = {
     reject: (requestId: string) => apiRequest('rejectCreditRequest', { requestId }),
 };
 
-// ─── Guidelines API ──────────────────────────────
 export const guidelinesApi = {
     upload: async (file: File) => {
         const pdfBase64 = await fileToBase64(file);
         return apiRequest('uploadGuidelines', { pdfBase64, mimeType: file.type });
     },
     get: () => apiRequest('getGuidelines'),
+};
+
+// ─── Settings API ────────────────────────────────
+export const settingsApi = {
+    getLimitations: () => apiRequest('getLimitations'),
+    updateLimitations: (limitations: string) => apiRequest('updateLimitations', { limitations }),
 };

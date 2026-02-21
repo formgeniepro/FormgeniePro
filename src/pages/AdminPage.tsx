@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import logoImg from '../assets/logo.png';
 import { Routes, Route } from 'react-router-dom';
 import { Sidebar } from '../components/Sidebar';
-import { adminApi, announcementsApi, creditRequestsApi, guidelinesApi } from '../services/api';
+import { adminApi, announcementsApi, creditRequestsApi, guidelinesApi, settingsApi } from '../services/api';
 import { Spinner } from '../components/Spinner';
 import {
     Users, CheckCircle, XCircle, Clock, Eye, Plus, Minus,
@@ -847,6 +847,18 @@ const GuidelinesManager: React.FC = () => {
 
     return (
         <div>
+            <div style={{ marginBottom: '40px' }}>
+                <h1 style={{ fontSize: '24px', fontWeight: 700, color: '#1e1b2e', marginBottom: '4px' }}>
+                    System Limitations
+                </h1>
+                <p style={{ color: '#6b6580', fontSize: '14px', marginBottom: '24px' }}>
+                    Configure the limitations of the system to be displayed on the Registration and Automation pages.
+                </p>
+                <SystemLimitationsManager />
+            </div>
+
+            <div style={{ height: '1px', background: '#e8e5f0', margin: '40px 0' }} />
+
             <h1 style={{ fontSize: '24px', fontWeight: 700, color: '#1e1b2e', marginBottom: '4px' }}>
                 Guidelines PDF
             </h1>
@@ -955,6 +967,94 @@ const GuidelinesManager: React.FC = () => {
     );
 };
 
+// ─── System Limitations Manager ────────────────────
+const SystemLimitationsManager: React.FC = () => {
+    const [limitations, setLimitations] = useState('');
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
+    const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+    const fetchLimitations = async () => {
+        try {
+            const data = await settingsApi.getLimitations();
+            setLimitations(data.limitations || '');
+        } catch {
+            // ignore
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => { fetchLimitations(); }, []);
+
+    const handleSave = async () => {
+        setSaving(true);
+        setFeedback(null);
+        try {
+            await settingsApi.updateLimitations(limitations);
+            setFeedback({ type: 'success', text: 'Limitations saved successfully!' });
+        } catch (err: any) {
+            setFeedback({ type: 'error', text: err.error || 'Failed to save limitations' });
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    return (
+        <div>
+            {/* Feedback */}
+            <AnimatePresence>
+                {feedback && (
+                    <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                        style={{
+                            display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 16px',
+                            borderRadius: '10px', marginBottom: '16px', fontSize: '13px', fontWeight: 500,
+                            background: feedback.type === 'success' ? '#ecfdf5' : '#fef2f2',
+                            border: `1px solid ${feedback.type === 'success' ? '#a7f3d0' : '#fecaca'}`,
+                            color: feedback.type === 'success' ? '#065f46' : '#991b1b',
+                        }}>
+                        {feedback.type === 'success' ? <CheckCircle style={{ width: 16, height: 16 }} /> : <AlertCircle style={{ width: 16, height: 16 }} />}
+                        {feedback.text}
+                        <button onClick={() => setFeedback(null)} style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', fontSize: '16px' }}>×</button>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            <div style={{ background: '#fff', borderRadius: '14px', border: '1px solid #e8e5f0', padding: '24px', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>
+                {loading ? (
+                    <div style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}><Spinner /></div>
+                ) : (
+                    <div>
+                        <textarea value={limitations} onChange={(e) => setLimitations(e.target.value)}
+                            placeholder="Enter system limitations here...\nUse line breaks to format as bullets on the display pages."
+                            rows={8}
+                            style={{
+                                width: '100%', padding: '14px', borderRadius: '10px',
+                                border: '1px solid #e8e5f0', fontSize: '14px', outline: 'none',
+                                resize: 'vertical', boxSizing: 'border-box', marginBottom: '16px',
+                                fontFamily: 'inherit', background: '#fafafa', color: '#1e1b2e'
+                            }} />
+
+                        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                            <button onClick={handleSave} disabled={saving}
+                                style={{
+                                    display: 'flex', alignItems: 'center', gap: '8px',
+                                    padding: '12px 24px', borderRadius: '10px', border: 'none',
+                                    background: saving ? '#d1d5db' : 'linear-gradient(135deg, #10b981, #059669)',
+                                    color: 'white', fontSize: '13px', fontWeight: 600,
+                                    cursor: saving ? 'not-allowed' : 'pointer',
+                                    boxShadow: saving ? 'none' : '0 4px 16px rgba(16,185,129,0.25)',
+                                }}>
+                                {saving ? <><Spinner size="h-4 w-4" /> Saving...</> : <><CheckCircle style={{ width: 14, height: 14 }} /> Save Limitations</>}
+                            </button>
+                        </div>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+};
+
 // ─── Admin Layout ──────────────────────────────────
 export const AdminPage: React.FC = () => {
     const [activeTab, setActiveTab] = useState<'users' | 'announcements' | 'credits' | 'guidelines'>('users');
@@ -1006,7 +1106,7 @@ export const AdminPage: React.FC = () => {
                         <CreditCard style={{ width: 16, height: 16, flexShrink: 0 }} /> <span style={{ whiteSpace: 'nowrap' }}>Credit Requests</span>
                     </button>
                     <button onClick={() => setActiveTab('guidelines')} style={tabStyle(activeTab === 'guidelines')}>
-                        <FileText style={{ width: 16, height: 16, flexShrink: 0 }} /> <span style={{ whiteSpace: 'nowrap' }}>Guidelines</span>
+                        <FileText style={{ width: 16, height: 16, flexShrink: 0 }} /> <span style={{ whiteSpace: 'nowrap' }}>Settings & Guidelines</span>
                     </button>
                 </div>
 
