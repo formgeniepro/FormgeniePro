@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react';
 import logoImg from '../assets/logo.png';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { UserPlus, AlertCircle, CheckCircle, Upload, Image, Sparkles } from 'lucide-react';
+import { UserPlus, AlertCircle, CheckCircle, Upload, Image, Sparkles, FileText } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Spinner } from '../components/Spinner';
-import { getQrCodeUrl, settingsApi } from '../services/api';
+import { getQrCodeUrl, settingsApi, guidelinesApi } from '../services/api';
 
 const PLANS = [
     { value: 'starter', label: 'Starter – 150 submissions (₹100)', credits: 150 },
@@ -28,11 +28,16 @@ export const RegisterPage: React.FC = () => {
 
     const [limitations, setLimitations] = useState<string>('');
     const [fetchingLimitations, setFetchingLimitations] = useState(true);
+    const [guidelinesUrl, setGuidelinesUrl] = useState<string>('');
 
     useEffect(() => {
         settingsApi.getLimitations().then(data => {
             setLimitations(data.limitations || '');
         }).catch(() => { }).finally(() => setFetchingLimitations(false));
+
+        guidelinesApi.get().then(data => {
+            if (data.url) setGuidelinesUrl(data.url);
+        }).catch(() => { });
     }, []);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -298,6 +303,35 @@ export const RegisterPage: React.FC = () => {
                             Sign in
                         </Link>
                     </p>
+
+                    {guidelinesUrl && (
+                        <div style={{ textAlign: 'center', marginTop: '16px' }}>
+                            <a
+                                href={guidelinesUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{
+                                    display: 'inline-flex', alignItems: 'center', gap: '6px',
+                                    color: '#6b6580', fontSize: '12px', textDecoration: 'none',
+                                    padding: '6px 12px', border: '1px solid #e8e5f0', borderRadius: '8px',
+                                    transition: 'all 0.2s', background: '#fafafa'
+                                }}
+                                onMouseOver={(e) => {
+                                    e.currentTarget.style.borderColor = '#4285F4';
+                                    e.currentTarget.style.color = '#4285F4';
+                                    e.currentTarget.style.background = '#fff';
+                                }}
+                                onMouseOut={(e) => {
+                                    e.currentTarget.style.borderColor = '#e8e5f0';
+                                    e.currentTarget.style.color = '#6b6580';
+                                    e.currentTarget.style.background = '#fafafa';
+                                }}
+                            >
+                                <FileText style={{ width: 14, height: 14 }} />
+                                View Guidelines
+                            </a>
+                        </div>
+                    )}
                 </div>
             </motion.div>
         </motion.div>

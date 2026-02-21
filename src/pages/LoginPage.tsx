@@ -2,10 +2,11 @@ import React, { useState } from 'react';
 import logoImg from '../assets/logo.png';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { LogIn, AlertCircle, Clock, XCircle, Sparkles } from 'lucide-react';
+import { LogIn, AlertCircle, Clock, XCircle, Sparkles, FileText } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { WhatsAppButton } from '../components/WhatsAppButton';
 import { Spinner } from '../components/Spinner';
+import { guidelinesApi } from '../services/api';
 
 export const LoginPage: React.FC = () => {
     const { login } = useAuth();
@@ -14,6 +15,13 @@ export const LoginPage: React.FC = () => {
     const [password, setPassword] = useState('');
     const [error, setError] = useState<{ message: string; status?: string } | null>(null);
     const [loading, setLoading] = useState(false);
+    const [guidelinesUrl, setGuidelinesUrl] = useState<string>('');
+
+    React.useEffect(() => {
+        guidelinesApi.get().then(data => {
+            if (data.url) setGuidelinesUrl(data.url);
+        }).catch(() => { });
+    }, []);
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -183,6 +191,35 @@ export const LoginPage: React.FC = () => {
                             Register here
                         </Link>
                     </p>
+
+                    {guidelinesUrl && (
+                        <div style={{ textAlign: 'center', marginTop: '16px' }}>
+                            <a
+                                href={guidelinesUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{
+                                    display: 'inline-flex', alignItems: 'center', gap: '6px',
+                                    color: '#6b6580', fontSize: '12px', textDecoration: 'none',
+                                    padding: '6px 12px', border: '1px solid #e8e5f0', borderRadius: '8px',
+                                    transition: 'all 0.2s', background: '#fafafa'
+                                }}
+                                onMouseOver={(e) => {
+                                    e.currentTarget.style.borderColor = '#4285F4';
+                                    e.currentTarget.style.color = '#4285F4';
+                                    e.currentTarget.style.background = '#fff';
+                                }}
+                                onMouseOut={(e) => {
+                                    e.currentTarget.style.borderColor = '#e8e5f0';
+                                    e.currentTarget.style.color = '#6b6580';
+                                    e.currentTarget.style.background = '#fafafa';
+                                }}
+                            >
+                                <FileText style={{ width: 14, height: 14 }} />
+                                View Guidelines
+                            </a>
+                        </div>
+                    )}
                 </div>
             </motion.div>
 
