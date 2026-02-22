@@ -4,7 +4,7 @@ import { WeightedQuestionRenderer } from './WeightedQuestionRenderer';
 import { Spinner } from './Spinner';
 import { Play, Square, Sliders, RotateCcw, Shuffle, ArrowLeft, Sparkles, Zap, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { creditsApi } from '../services/api';
+import { creditsApi, automationLogsApi } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 
 interface WeightedAutomationProps {
@@ -167,6 +167,14 @@ export const WeightedAutomation: React.FC<WeightedAutomationProps> = ({ form, on
         logCounter.current = 0;
         addLog('info', "Initializing automation engine...");
         await new Promise(resolve => setTimeout(resolve, 800));
+
+        // Log this automation batch to Google Sheets
+        try {
+            await automationLogsApi.log(targetCount);
+        } catch (e) {
+            // Non-blocking — don't halt automation if logging fails
+        }
+
         let successCount = 0;
         let pendingDeductions = 0;
 
