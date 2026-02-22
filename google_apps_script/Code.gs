@@ -137,7 +137,7 @@ function handleRegister(data) {
   const timestamp = new Date().toISOString();
   // Password stored as plain text for GAS demo simplicity
   
-  const credits = data.plan === 'starter' ? 150 : data.plan === 'pro' ? 300 : 500;
+  const credits = data.plan === 'basic' ? 75 : data.plan === 'starter' ? 150 : 320;
   
   // Upload Screenshot if present
   let screenshotUrl = '';
@@ -155,7 +155,7 @@ function handleRegister(data) {
   const txSheet = ss.getSheetByName(SHEET_TRANSACTIONS);
   txSheet.appendRow([
     Utilities.getUuid(), id, txnId, screenshotUrl, 'pending', 
-    data.plan === 'starter' ? 100 : 180, timestamp
+    data.plan === 'basic' ? 50 : data.plan === 'starter' ? 100 : 200, timestamp
   ]);
 
   // 📧 SEND EMAIL TO ADMIN
@@ -470,8 +470,8 @@ function handleRequestCredits(data) {
   if (!userId) return errorResponse('User not found');
 
   // Determine credits and amount from plan
-  var creditsMap = { 'starter': 150, 'pro': 300, 'executive': 500 };
-  var amountMap = { 'starter': 100, 'pro': 180, 'executive': 300 };
+  var creditsMap = { 'basic': 75, 'starter': 150, 'pro': 320 };
+  var amountMap = { 'basic': 50, 'starter': 100, 'pro': 200 };
   var creditsRequested = creditsMap[data.plan] || 0;
   var amount = amountMap[data.plan] || 0;
   if (!creditsRequested) return errorResponse('Invalid plan selected');
