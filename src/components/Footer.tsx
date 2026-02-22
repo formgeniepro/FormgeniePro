@@ -28,7 +28,7 @@ export const Footer: React.FC = () => {
                 gap: '4px'
             }}
         >
-            Designed by Arasukirubanandhan <span style={{ color: '#f87171' }}>❤️</span>
+            Crafted by AK <span style={{ color: '#f87171' }}>❤️</span>
         </motion.div>
     );
 };
