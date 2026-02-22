@@ -3,7 +3,7 @@ import logoImg from '../assets/logo.png';
 import { useNavigate } from 'react-router-dom';
 import { Sparkles, LogIn, UserPlus } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { WhatsAppButton } from '../components/WhatsAppButton';
+import { TelegramButton } from '../components/TelegramButton';
 
 const pageVariants = {
     initial: { opacity: 0, y: 30 },
@@ -137,7 +137,7 @@ export const HomePage: React.FC = () => {
                 </button>
             </motion.div>
 
-            <WhatsAppButton />
+            <TelegramButton />
         </motion.div>
     );
 };

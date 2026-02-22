@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { UserPlus, AlertCircle, CheckCircle, Upload, Image, Sparkles, FileText } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Spinner } from '../components/Spinner';
+import { TelegramButton } from '../components/TelegramButton';
 import { getQrCodeUrl, settingsApi, guidelinesApi } from '../services/api';
 
 const PLANS = [
@@ -334,6 +335,7 @@ export const RegisterPage: React.FC = () => {
                     )}
                 </div>
             </motion.div>
+            <TelegramButton />
         </motion.div>
     );
 };

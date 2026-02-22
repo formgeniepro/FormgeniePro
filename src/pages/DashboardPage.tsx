@@ -11,6 +11,7 @@ import { Spinner } from '../components/Spinner';
 import { creditsApi, guidelinesApi, settingsApi } from '../services/api';
 import { Link2, FileCode2, AlertCircle, Sparkles, Zap, CreditCard, TrendingUp, Activity, Menu, FileText } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { TelegramButton } from '../components/TelegramButton';
 
 // ─── Dashboard Overview ────────────────────────────
 const DashboardOverview: React.FC = () => {
@@ -93,6 +94,7 @@ const DashboardOverview: React.FC = () => {
                     <Zap style={{ width: 16, height: 16 }} /> Start Automation
                 </Link>
             </div>
+            <TelegramButton />
         </div>
     );
 };

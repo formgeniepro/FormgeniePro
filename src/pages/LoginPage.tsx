@@ -4,7 +4,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { LogIn, AlertCircle, Clock, XCircle, Sparkles, FileText } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { WhatsAppButton } from '../components/WhatsAppButton';
+import { TelegramButton } from '../components/TelegramButton';
 import { Spinner } from '../components/Spinner';
 import { guidelinesApi } from '../services/api';
 
@@ -223,7 +223,7 @@ export const LoginPage: React.FC = () => {
                 </div>
             </motion.div>
 
-            <WhatsAppButton />
+            <TelegramButton />
         </motion.div>
     );
 };
