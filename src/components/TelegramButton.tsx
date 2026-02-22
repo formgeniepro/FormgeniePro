@@ -3,7 +3,7 @@ import React from 'react';
 export const TelegramButton: React.FC = () => {
     return (
         <a
-            href="https://t.me/formgeniepro"
+            href="tg://resolve?domain=formgeniepro"
             target="_blank"
             rel="noopener noreferrer"
             style={{
