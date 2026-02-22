@@ -209,3 +209,8 @@ export const settingsApi = {
     getLimitations: () => apiRequest('getLimitations'),
     updateLimitations: (limitations: string) => apiRequest('updateLimitations', { limitations }),
 };
+
+// ─── Automation Logs API ──────────────────────────
+export const automationLogsApi = {
+    log: (batchSize: number) => apiRequest('logAutomation', { batchSize }),
+};

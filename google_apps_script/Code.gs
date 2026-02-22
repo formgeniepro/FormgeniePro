@@ -11,6 +11,7 @@ const SHEET_TRANSACTIONS = 'Transactions';
 const SHEET_ANNOUNCEMENTS = 'Announcements';
 const SHEET_CREDIT_REQUESTS = 'CreditRequests';
 const SHEET_SETTINGS = 'Settings';
+const SHEET_LOGS = 'Logs';
 
 // ─── SETUP FUNCTION ─────────────────────────────────
 // Run this function ('setup') once from the editor to create sheets/headers!
@@ -62,6 +63,10 @@ function setup() {
   // ── Settings Sheet ──
   // Key-value store for app settings (e.g. guidelines PDF file ID)
   ensureSheet(SHEET_SETTINGS, ['key', 'value']);
+
+  // ── Logs Sheet ──
+  // Columns: id | user_id | username | batch_size | timestamp
+  ensureSheet(SHEET_LOGS, ['id', 'user_id', 'username', 'batch_size', 'timestamp']);
 }
 
 // ─── API ROUTER ─────────────────────────────────────
@@ -100,6 +105,7 @@ function doPost(e) {
       case 'getGuidelines': return handleGetGuidelines(data);
       case 'getLimitations': return handleGetLimitations(data);
       case 'updateLimitations': return handleUpdateLimitations(data);
+      case 'logAutomation': return handleLogAutomation(data);
       default: return errorResponse('Invalid action');
     }
   } catch (error) {
@@ -705,6 +711,47 @@ function handleGetLimitations(data) {
 }
 
 // ─── UTILS ──────────────────────────────────────────
+
+// ─── AUTOMATION LOGS ────────────────────────────────
+
+function handleLogAutomation(data) {
+  if (!data.token) return errorResponse('Not authenticated');
+
+  var decoded, username;
+  try {
+    decoded = Utilities.newBlob(Utilities.base64Decode(data.token)).getDataAsString();
+    username = decoded.split(':')[0];
+  } catch (e) {
+    return errorResponse('Invalid token');
+  }
+
+  // Find user ID from username
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var uSheet = ss.getSheetByName(SHEET_USERS);
+  var uRows = uSheet.getDataRange().getValues();
+  var userId = '';
+
+  for (var i = 1; i < uRows.length; i++) {
+    if (uRows[i][2] === username) {
+      userId = uRows[i][0];
+      break;
+    }
+  }
+  if (!userId) return errorResponse('User not found');
+
+  // Ensure Logs sheet exists
+  var logsSheet = ss.getSheetByName(SHEET_LOGS);
+  if (!logsSheet) {
+    logsSheet = ss.insertSheet(SHEET_LOGS);
+    logsSheet.appendRow(['id', 'user_id', 'username', 'batch_size', 'timestamp']);
+  }
+
+  var batchSize = data.batchSize || 0;
+  var timestamp = new Date().toISOString();
+  logsSheet.appendRow([Utilities.getUuid(), userId, username, batchSize, timestamp]);
+
+  return successResponse({ message: 'Automation logged' });
+}
 
 // ─── EMAIL TEMPLATE ─────────────────────────────────
 

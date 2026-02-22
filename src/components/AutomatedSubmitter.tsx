@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { ParsedForm, QuestionType } from '../types';
 import { Play, Square, AlertCircle, CheckCircle, Activity, CreditCard } from 'lucide-react';
-import { creditsApi } from '../services/api';
+import { creditsApi, automationLogsApi } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 
 interface AutomatedSubmitterProps {
@@ -80,6 +80,14 @@ export const AutomatedSubmitter: React.FC<AutomatedSubmitterProps> = ({ form, an
     logCounter.current = 0;
     addLog('info', "Starting automated submission sequence...");
     await delay(800);
+
+    // Log this automation batch to Google Sheets
+    try {
+      await automationLogsApi.log(targetCount);
+    } catch (e) {
+      // Non-blocking — don't halt automation if logging fails
+    }
+
     let successCount = 0;
     let pendingDeductions = 0;
 
