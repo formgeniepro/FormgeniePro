@@ -9,9 +9,9 @@ import { TelegramButton } from '../components/TelegramButton';
 import { getQrCodeUrl, settingsApi, guidelinesApi } from '../services/api';
 
 const PLANS = [
-    { value: 'starter', label: 'Starter – 150 submissions (₹100)', credits: 150 },
-    { value: 'pro', label: 'Pro – 300 submissions (₹180)', credits: 300 },
-    { value: 'executive', label: 'Executive – 500 submissions (₹300)', credits: 500 },
+    { value: 'basic', label: 'Basic – 75 credits (₹50)', credits: 75 },
+    { value: 'starter', label: 'Starter – 150 credits (₹100)', credits: 150 },
+    { value: 'pro', label: 'Pro – 320 credits (₹200)', credits: 320 },
 ];
 
 export const RegisterPage: React.FC = () => {

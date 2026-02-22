@@ -5,9 +5,9 @@ import { creditRequestsApi } from '../services/api';
 import { Spinner } from './Spinner';
 
 const ADDON_PLANS = [
-    { value: 'starter', credits: 150, price: 100, label: 'Starter' },
-    { value: 'pro', credits: 300, price: 180, label: 'Pro', popular: true },
-    { value: 'executive', credits: 500, price: 300, label: 'Executive' },
+    { value: 'basic', credits: 75, price: 50, label: 'Basic' },
+    { value: 'starter', credits: 150, price: 100, label: 'Starter', popular: true },
+    { value: 'pro', credits: 320, price: 200, label: 'Pro' },
 ];
 
 interface CreditRequestModalProps {
