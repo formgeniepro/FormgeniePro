@@ -13,6 +13,7 @@ interface Plan {
     label: string;
     credits: number;
     price: number;
+    popular?: boolean;
 }
 
 export const RegisterPage: React.FC = () => {
@@ -218,14 +219,47 @@ export const RegisterPage: React.FC = () => {
                                 </div>
 
                                 <div style={{ marginBottom: '16px' }}>
-                                    <label style={labelStyle}>Select Plan</label>
-                                    <select name="plan" value={form.plan} onChange={handleChange} required
-                                        style={{ ...inputStyle, cursor: 'pointer', appearance: 'auto' }}>
-                                        <option value="">Choose a plan...</option>
-                                        {plans.map((p) => (
-                                            <option key={p.value} value={p.value}>{p.label} – {p.credits} credits (₹{p.price})</option>
-                                        ))}
-                                    </select>
+                                    <label style={labelStyle}>Select Plan*</label>
+                                    <div style={{ display: 'flex', gap: '10px', marginTop: '4px' }}>
+                                        {plans.map((plan) => {
+                                            const isSelected = form.plan === plan.value;
+                                            return (
+                                                <div
+                                                    key={plan.value}
+                                                    onClick={() => setForm((prev) => ({ ...prev, plan: plan.value }))}
+                                                    style={{
+                                                        flex: 1, padding: '14px 10px', borderRadius: '12px', cursor: 'pointer',
+                                                        border: isSelected ? '2px solid #4285F4' : '2px solid #e8e5f0',
+                                                        background: isSelected ? 'linear-gradient(135deg, #eff6ff, #e8f0fe)' : '#fafafa',
+                                                        textAlign: 'center', transition: 'all 0.2s', position: 'relative',
+                                                    }}
+                                                >
+                                                    {plan.popular && (
+                                                        <span style={{
+                                                            position: 'absolute', top: '-8px', left: '50%', transform: 'translateX(-50%)',
+                                                            background: 'linear-gradient(135deg, #4285F4, #5a9cf5)', color: 'white',
+                                                            fontSize: '9px', fontWeight: 700, padding: '2px 8px', borderRadius: '10px',
+                                                            textTransform: 'uppercase', letterSpacing: '0.5px',
+                                                        }}>
+                                                            Popular
+                                                        </span>
+                                                    )}
+                                                    <div style={{ fontSize: '13px', fontWeight: 700, color: '#6b6580', marginBottom: '4px' }}>{plan.label}</div>
+                                                    <div style={{ fontSize: '22px', fontWeight: 800, color: isSelected ? '#4285F4' : '#1e1b2e' }}>
+                                                        {plan.credits}
+                                                    </div>
+                                                    <div style={{ fontSize: '11px', color: '#6b6580', marginTop: '2px' }}>credits</div>
+                                                    <div style={{
+                                                        marginTop: '8px', fontSize: '14px', fontWeight: 700,
+                                                        color: isSelected ? '#4285F4' : '#374151',
+                                                    }}>
+                                                        ₹{plan.price}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                    <input type="hidden" name="plan" value={form.plan} required />
                                 </div>
 
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
