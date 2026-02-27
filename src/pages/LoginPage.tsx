@@ -6,7 +6,7 @@ import { LogIn, AlertCircle, Clock, XCircle, Sparkles, FileText } from 'lucide-r
 import { motion } from 'framer-motion';
 import { TelegramButton } from '../components/TelegramButton';
 import { Spinner } from '../components/Spinner';
-import { guidelinesApi } from '../services/api';
+import { guidelinesApi, settingsApi } from '../services/api';
 
 export const LoginPage: React.FC = () => {
     const { login } = useAuth();
@@ -16,10 +16,17 @@ export const LoginPage: React.FC = () => {
     const [error, setError] = useState<{ message: string; status?: string } | null>(null);
     const [loading, setLoading] = useState(false);
     const [guidelinesUrl, setGuidelinesUrl] = useState<string>('');
+    const [registrationEnabled, setRegistrationEnabled] = useState(true);
 
     React.useEffect(() => {
         guidelinesApi.get().then(data => {
             if (data.url) setGuidelinesUrl(data.url);
+        }).catch(() => { });
+
+        settingsApi.getAppConfig().then(data => {
+            if (data.config && data.config.registration_enabled !== undefined) {
+                setRegistrationEnabled(data.config.registration_enabled);
+            }
         }).catch(() => { });
     }, []);
 
@@ -185,12 +192,14 @@ export const LoginPage: React.FC = () => {
                         </button>
                     </form>
 
-                    <p style={{ textAlign: 'center', marginTop: '24px', fontSize: '13px', color: '#9e97b0' }}>
-                        Don't have an account?{' '}
-                        <Link to="/register" style={{ color: '#4285F4', fontWeight: 600, textDecoration: 'none' }}>
-                            Register here
-                        </Link>
-                    </p>
+                    {registrationEnabled && (
+                        <p style={{ textAlign: 'center', marginTop: '24px', fontSize: '13px', color: '#9e97b0' }}>
+                            Don't have an account?{' '}
+                            <Link to="/register" style={{ color: '#4285F4', fontWeight: 600, textDecoration: 'none' }}>
+                                Register here
+                            </Link>
+                        </p>
+                    )}
 
                     {guidelinesUrl && (
                         <div style={{ textAlign: 'center', marginTop: '16px' }}>

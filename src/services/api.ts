@@ -208,6 +208,8 @@ export const guidelinesApi = {
 export const settingsApi = {
     getLimitations: () => apiRequest('getLimitations'),
     updateLimitations: (limitations: string) => apiRequest('updateLimitations', { limitations }),
+    getAppConfig: () => apiRequest('getAppConfig'),
+    updateAppConfig: (config: any) => apiRequest('updateAppConfig', { config }),
 };
 
 // ─── Automation Logs API ──────────────────────────

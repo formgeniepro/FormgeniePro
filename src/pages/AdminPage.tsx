@@ -849,6 +849,18 @@ const GuidelinesManager: React.FC = () => {
         <div>
             <div style={{ marginBottom: '40px' }}>
                 <h1 style={{ fontSize: '24px', fontWeight: 700, color: '#1e1b2e', marginBottom: '4px' }}>
+                    Global Settings
+                </h1>
+                <p style={{ color: '#6b6580', fontSize: '14px', marginBottom: '24px' }}>
+                    Configure registration access and pricing plans.
+                </p>
+                <SettingsManager />
+            </div>
+
+            <div style={{ height: '1px', background: '#e8e5f0', margin: '40px 0' }} />
+
+            <div style={{ marginBottom: '40px' }}>
+                <h1 style={{ fontSize: '24px', fontWeight: 700, color: '#1e1b2e', marginBottom: '4px' }}>
                     System Limitations
                 </h1>
                 <p style={{ color: '#6b6580', fontSize: '14px', marginBottom: '24px' }}>
@@ -960,6 +972,146 @@ const GuidelinesManager: React.FC = () => {
                         <FileText style={{ width: 40, height: 40, margin: '0 auto 12px', opacity: 0.5 }} />
                         <p style={{ fontSize: '14px', fontWeight: 500 }}>No guidelines PDF uploaded yet</p>
                         <p style={{ fontSize: '12px', color: '#b8b3c8' }}>Upload a PDF above to get started</p>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+};
+
+// ─── Settings Manager ────────────────────────────
+const SettingsManager: React.FC = () => {
+    const [config, setConfig] = useState({
+        registration_enabled: true,
+        plans: [
+            { value: 'basic', credits: 75, price: 50, label: 'Basic' },
+            { value: 'starter', credits: 150, price: 100, label: 'Starter', popular: true },
+            { value: 'pro', credits: 320, price: 200, label: 'Pro' }
+        ]
+    });
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
+    const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+    const fetchConfig = async () => {
+        try {
+            const data = await settingsApi.getAppConfig();
+            if (data.config) {
+                setConfig(data.config);
+            }
+        } catch {
+            // ignore
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => { fetchConfig(); }, []);
+
+    const handleSave = async () => {
+        setSaving(true);
+        setFeedback(null);
+        try {
+            await settingsApi.updateAppConfig(config);
+            setFeedback({ type: 'success', text: 'Settings saved successfully!' });
+        } catch (err: any) {
+            setFeedback({ type: 'error', text: err.error || 'Failed to save settings' });
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handlePlanChange = (index: number, field: string, value: string | number | boolean) => {
+        const newPlans = [...config.plans];
+        newPlans[index] = { ...newPlans[index], [field]: value };
+        setConfig({ ...config, plans: newPlans });
+    };
+
+    const inputStyle = {
+        width: '100%', padding: '10px 14px', borderRadius: '10px',
+        border: '1px solid #e8e5f0', fontSize: '13px', outline: 'none',
+        boxSizing: 'border-box' as const, background: '#fafafa', color: '#1e1b2e'
+    };
+
+    return (
+        <div>
+            {/* Feedback */}
+            <AnimatePresence>
+                {feedback && (
+                    <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                        style={{
+                            display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 16px',
+                            borderRadius: '10px', marginBottom: '16px', fontSize: '13px', fontWeight: 500,
+                            background: feedback.type === 'success' ? '#ecfdf5' : '#fef2f2',
+                            border: `1px solid ${feedback.type === 'success' ? '#a7f3d0' : '#fecaca'}`,
+                            color: feedback.type === 'success' ? '#065f46' : '#991b1b',
+                        }}>
+                        {feedback.type === 'success' ? <CheckCircle style={{ width: 16, height: 16 }} /> : <AlertCircle style={{ width: 16, height: 16 }} />}
+                        {feedback.text}
+                        <button onClick={() => setFeedback(null)} style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', fontSize: '16px' }}>×</button>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            <div style={{ background: '#fff', borderRadius: '14px', border: '1px solid #e8e5f0', padding: '24px', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>
+                {loading ? (
+                    <div style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}><Spinner /></div>
+                ) : (
+                    <div>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px', paddingBottom: '20px', borderBottom: '1px solid #e8e5f0' }}>
+                            <div>
+                                <h3 style={{ margin: '0 0 4px', fontSize: '16px', fontWeight: 700, color: '#1e1b2e' }}>New User Registration</h3>
+                                <p style={{ margin: 0, fontSize: '13px', color: '#6b6580' }}>Allow new users to sign up for an account.</p>
+                            </div>
+                            <button
+                                onClick={() => setConfig({ ...config, registration_enabled: !config.registration_enabled })}
+                                style={{
+                                    border: 'none', background: 'transparent', cursor: 'pointer', padding: 0,
+                                    color: config.registration_enabled ? '#059669' : '#dc2626',
+                                    display: 'flex', alignItems: 'center'
+                                }}
+                            >
+                                {config.registration_enabled ? <ToggleRight style={{ width: 40, height: 40 }} /> : <ToggleLeft style={{ width: 40, height: 40 }} />}
+                            </button>
+                        </div>
+
+                        <h3 style={{ margin: '0 0 16px', fontSize: '16px', fontWeight: 700, color: '#1e1b2e' }}>Pricing Plans Configure</h3>
+                        <p style={{ margin: '0 0 20px', fontSize: '13px', color: '#6b6580' }}>Update the name, price, and credits for each plan.</p>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginBottom: '24px' }}>
+                            {config.plans.map((plan, index) => (
+                                <div key={index} style={{ background: '#f8f7fc', padding: '16px', borderRadius: '12px', border: '1px solid #e8e5f0' }}>
+                                    <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+                                        <div style={{ flex: '1 1 200px' }}>
+                                            <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#6b6580', textTransform: 'uppercase', marginBottom: '6px' }}>Plan Name</label>
+                                            <input value={plan.label} onChange={(e) => handlePlanChange(index, 'label', e.target.value)} style={inputStyle} />
+                                        </div>
+                                        <div style={{ flex: '1 1 120px' }}>
+                                            <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#6b6580', textTransform: 'uppercase', marginBottom: '6px' }}>Price (₹)</label>
+                                            <input type="number" value={plan.price} onChange={(e) => handlePlanChange(index, 'price', parseInt(e.target.value) || 0)} style={inputStyle} />
+                                        </div>
+                                        <div style={{ flex: '1 1 120px' }}>
+                                            <label style={{ display: 'block', fontSize: '11px', fontWeight: 700, color: '#6b6580', textTransform: 'uppercase', marginBottom: '6px' }}>Credits</label>
+                                            <input type="number" value={plan.credits} onChange={(e) => handlePlanChange(index, 'credits', parseInt(e.target.value) || 0)} style={inputStyle} />
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                            <button onClick={handleSave} disabled={saving}
+                                style={{
+                                    display: 'flex', alignItems: 'center', gap: '8px',
+                                    padding: '12px 24px', borderRadius: '10px', border: 'none',
+                                    background: saving ? '#d1d5db' : 'linear-gradient(135deg, #4285F4, #5a9cf5)',
+                                    color: 'white', fontSize: '13px', fontWeight: 600,
+                                    cursor: saving ? 'not-allowed' : 'pointer',
+                                    boxShadow: saving ? 'none' : '0 4px 16px rgba(66,133,244,0.25)',
+                                }}>
+                                {saving ? <><Spinner size="h-4 w-4" /> Saving...</> : <><CheckCircle style={{ width: 14, height: 14 }} /> Save Settings</>}
+                            </button>
+                        </div>
                     </div>
                 )}
             </div>

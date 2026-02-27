@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
 import { X, Upload, CheckCircle, AlertCircle, CreditCard, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { creditRequestsApi } from '../services/api';
+import { creditRequestsApi, settingsApi } from '../services/api';
 import { Spinner } from './Spinner';
 
-const ADDON_PLANS = [
-    { value: 'basic', credits: 75, price: 50, label: 'Basic' },
-    { value: 'starter', credits: 150, price: 100, label: 'Starter', popular: true },
-    { value: 'pro', credits: 320, price: 200, label: 'Pro' },
-];
+interface Plan {
+    value: string;
+    label: string;
+    credits: number;
+    price: number;
+    popular?: boolean;
+}
 
 interface CreditRequestModalProps {
     isOpen: boolean;
@@ -24,8 +26,23 @@ export const CreditRequestModal: React.FC<CreditRequestModalProps> = ({ isOpen, 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
+    const [plans, setPlans] = useState<Plan[]>([]);
+    const [fetchingConfig, setFetchingConfig] = useState(true);
 
     const qrUrl = 'https://lh3.googleusercontent.com/d/1WpQ-BfetJZjCo-MI5Dbj2SU6syyPhcy6';
+
+    React.useEffect(() => {
+        if (isOpen) {
+            settingsApi.getAppConfig()
+                .then(data => {
+                    if (data.config && data.config.plans) {
+                        setPlans(data.config.plans);
+                    }
+                })
+                .catch(() => { })
+                .finally(() => setFetchingConfig(false));
+        }
+    }, [isOpen]);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -51,8 +68,8 @@ export const CreditRequestModal: React.FC<CreditRequestModalProps> = ({ isOpen, 
 
         setLoading(true);
         try {
-            const data = await creditRequestsApi.submit(selectedPlan, transactionId, screenshot || undefined);
-            setSuccess(data.message || 'Credit request submitted! Awaiting admin approval.');
+            await creditRequestsApi.submit(selectedPlan, transactionId, screenshot || undefined);
+            setSuccess('Requested credits will be added to your account once the admin approves. You will receive a confirmation mail soon.');
             setSelectedPlan('');
             setTransactionId('');
             setScreenshot(null);
@@ -177,44 +194,48 @@ export const CreditRequestModal: React.FC<CreditRequestModalProps> = ({ isOpen, 
                                 <form onSubmit={handleSubmit}>
                                     {/* Plan Selection */}
                                     <label style={labelStyle}>Select Package</label>
-                                    <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
-                                        {ADDON_PLANS.map((plan) => {
-                                            const isSelected = selectedPlan === plan.value;
-                                            return (
-                                                <div
-                                                    key={plan.value}
-                                                    onClick={() => setSelectedPlan(plan.value)}
-                                                    style={{
-                                                        flex: 1, padding: '14px 10px', borderRadius: '12px', cursor: 'pointer',
-                                                        border: isSelected ? '2px solid #4285F4' : '2px solid #e8e5f0',
-                                                        background: isSelected ? 'linear-gradient(135deg, #eff6ff, #e8f0fe)' : '#fafafa',
-                                                        textAlign: 'center', transition: 'all 0.2s', position: 'relative',
-                                                    }}
-                                                >
-                                                    {plan.popular && (
-                                                        <span style={{
-                                                            position: 'absolute', top: '-8px', left: '50%', transform: 'translateX(-50%)',
-                                                            background: 'linear-gradient(135deg, #4285F4, #5a9cf5)', color: 'white',
-                                                            fontSize: '9px', fontWeight: 700, padding: '2px 8px', borderRadius: '10px',
-                                                            textTransform: 'uppercase', letterSpacing: '0.5px',
+                                    {fetchingConfig ? (
+                                        <div style={{ padding: '20px', textAlign: 'center' }}><Spinner /></div>
+                                    ) : (
+                                        <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
+                                            {plans.map((plan) => {
+                                                const isSelected = selectedPlan === plan.value;
+                                                return (
+                                                    <div
+                                                        key={plan.value}
+                                                        onClick={() => setSelectedPlan(plan.value)}
+                                                        style={{
+                                                            flex: 1, padding: '14px 10px', borderRadius: '12px', cursor: 'pointer',
+                                                            border: isSelected ? '2px solid #4285F4' : '2px solid #e8e5f0',
+                                                            background: isSelected ? 'linear-gradient(135deg, #eff6ff, #e8f0fe)' : '#fafafa',
+                                                            textAlign: 'center', transition: 'all 0.2s', position: 'relative',
+                                                        }}
+                                                    >
+                                                        {plan.popular && (
+                                                            <span style={{
+                                                                position: 'absolute', top: '-8px', left: '50%', transform: 'translateX(-50%)',
+                                                                background: 'linear-gradient(135deg, #4285F4, #5a9cf5)', color: 'white',
+                                                                fontSize: '9px', fontWeight: 700, padding: '2px 8px', borderRadius: '10px',
+                                                                textTransform: 'uppercase', letterSpacing: '0.5px',
+                                                            }}>
+                                                                Popular
+                                                            </span>
+                                                        )}
+                                                        <div style={{ fontSize: '22px', fontWeight: 800, color: isSelected ? '#4285F4' : '#1e1b2e' }}>
+                                                            {plan.credits}
+                                                        </div>
+                                                        <div style={{ fontSize: '11px', color: '#6b6580', marginTop: '2px' }}>credits</div>
+                                                        <div style={{
+                                                            marginTop: '8px', fontSize: '14px', fontWeight: 700,
+                                                            color: isSelected ? '#4285F4' : '#374151',
                                                         }}>
-                                                            Popular
-                                                        </span>
-                                                    )}
-                                                    <div style={{ fontSize: '22px', fontWeight: 800, color: isSelected ? '#4285F4' : '#1e1b2e' }}>
-                                                        {plan.credits}
+                                                            ₹{plan.price}
+                                                        </div>
                                                     </div>
-                                                    <div style={{ fontSize: '11px', color: '#6b6580', marginTop: '2px' }}>credits</div>
-                                                    <div style={{
-                                                        marginTop: '8px', fontSize: '14px', fontWeight: 700,
-                                                        color: isSelected ? '#4285F4' : '#374151',
-                                                    }}>
-                                                        ₹{plan.price}
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
 
                                     {/* Divider */}
                                     <div style={{ borderTop: '1px solid #e8e5f0', margin: '20px 0', position: 'relative' }}>

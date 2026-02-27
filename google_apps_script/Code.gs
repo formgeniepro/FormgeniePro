@@ -105,6 +105,8 @@ function doPost(e) {
       case 'getGuidelines': return handleGetGuidelines(data);
       case 'getLimitations': return handleGetLimitations(data);
       case 'updateLimitations': return handleUpdateLimitations(data);
+      case 'getAppConfig': return handleGetAppConfig(data);
+      case 'updateAppConfig': return handleUpdateAppConfig(data);
       case 'logAutomation': return handleLogAutomation(data);
       default: return errorResponse('Invalid action');
     }
@@ -708,6 +710,65 @@ function handleGetLimitations(data) {
     }
   }
   return successResponse({ limitations: '' });
+}
+
+// ─── APP CONFIG HANDLERS ────────────────────────────
+
+const DEFAULT_CONFIG = {
+  registration_enabled: true,
+  plans: [
+    { value: 'basic', credits: 75, price: 50, label: 'Basic' },
+    { value: 'starter', credits: 150, price: 100, label: 'Starter', popular: true },
+    { value: 'pro', credits: 320, price: 200, label: 'Pro' }
+  ]
+};
+
+function handleGetAppConfig(data) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var settingsSheet = ss.getSheetByName(SHEET_SETTINGS);
+  if (!settingsSheet) return successResponse({ config: DEFAULT_CONFIG });
+
+  var rows = settingsSheet.getDataRange().getValues();
+  for (var i = 1; i < rows.length; i++) {
+    if (rows[i][0] === 'app_config') {
+      try {
+        var config = JSON.parse(rows[i][1]);
+        return successResponse({ config: config });
+      } catch (e) {
+        return successResponse({ config: DEFAULT_CONFIG });
+      }
+    }
+  }
+  return successResponse({ config: DEFAULT_CONFIG });
+}
+
+function handleUpdateAppConfig(data) {
+  if (!data.config) return errorResponse('No config provided');
+
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var settingsSheet = ss.getSheetByName(SHEET_SETTINGS);
+  if (!settingsSheet) {
+    settingsSheet = ss.insertSheet(SHEET_SETTINGS);
+    settingsSheet.appendRow(['key', 'value']);
+  }
+
+  var rows = settingsSheet.getDataRange().getValues();
+  var found = false;
+  var configString = JSON.stringify(data.config);
+  
+  for (var i = 1; i < rows.length; i++) {
+    if (rows[i][0] === 'app_config') {
+      settingsSheet.getRange(i + 1, 2).setValue(configString);
+      found = true;
+      break;
+    }
+  }
+
+  if (!found) {
+    settingsSheet.appendRow(['app_config', configString]);
+  }
+
+  return successResponse({ message: 'Configuration updated successfully' });
 }
 
 // ─── UTILS ──────────────────────────────────────────
