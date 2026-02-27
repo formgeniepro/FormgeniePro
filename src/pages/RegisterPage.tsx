@@ -1,62 +1,29 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import logoImg from '../assets/logo.png';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { UserPlus, AlertCircle, CheckCircle, Upload, Image, Sparkles, FileText } from 'lucide-react';
+import { UserPlus, AlertCircle, CheckCircle, Upload, FileText } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Spinner } from '../components/Spinner';
 import { TelegramButton } from '../components/TelegramButton';
-import { getStoredUser, paymentQrApi, settingsApi, guidelinesApi } from '../services/api';
-
-interface Plan {
-    value: string;
-    label: string;
-    credits: number;
-    price: number;
-    popular?: boolean;
-}
+import { useAppData } from '../contexts/AppDataContext';
 
 export const RegisterPage: React.FC = () => {
     const { register } = useAuth();
+    const { appConfig, limitations, guidelinesUrl, paymentQrUrl } = useAppData();
+    const registrationEnabled = appConfig.registration_enabled;
+    const plans = appConfig.plans;
+    const qrUrl = paymentQrUrl;
+
     const [form, setForm] = useState({
         name: '', contact_number: '', email: '', plan: '',
         username: '', password: '', transaction_id: '',
     });
     const [screenshot, setScreenshot] = useState<File | null>(null);
     const [screenshotPreview, setScreenshotPreview] = useState<string>('');
-    const [qrUrl, setQrUrl] = useState('');
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const [loading, setLoading] = useState(false);
-
-    const [limitations, setLimitations] = useState<string>('');
-    const [fetchingLimitations, setFetchingLimitations] = useState(true);
-    const [guidelinesUrl, setGuidelinesUrl] = useState<string>('');
-
-    const [registrationEnabled, setRegistrationEnabled] = useState(true);
-    const [plans, setPlans] = useState<Plan[]>([]);
-    const [fetchingConfig, setFetchingConfig] = useState(true);
-
-    useEffect(() => {
-        settingsApi.getLimitations().then(data => {
-            setLimitations(data.limitations || '');
-        }).catch(() => { }).finally(() => setFetchingLimitations(false));
-
-        settingsApi.getAppConfig().then(data => {
-            if (data.config) {
-                if (data.config.registration_enabled !== undefined) setRegistrationEnabled(data.config.registration_enabled);
-                if (data.config.plans) setPlans(data.config.plans);
-            }
-        }).catch(() => { }).finally(() => setFetchingConfig(false));
-
-        guidelinesApi.get().then(data => {
-            if (data.url) setGuidelinesUrl(data.url);
-        }).catch(() => { });
-
-        paymentQrApi.get().then(data => {
-            if (data.url) setQrUrl(data.url);
-        }).catch(() => { });
-    }, []);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         setForm({ ...form, [e.target.name]: e.target.value });
@@ -86,7 +53,6 @@ export const RegisterPage: React.FC = () => {
             const formData = new FormData();
             Object.entries(form).forEach(([key, val]) => formData.append(key, val));
 
-            // Append the dynamically fetched credits for the selected plan
             const selectedPlan = plans.find(p => p.value === form.plan);
             if (selectedPlan) {
                 formData.append('credits', selectedPlan.credits.toString());
@@ -184,7 +150,7 @@ export const RegisterPage: React.FC = () => {
                     )}
 
                     {/* Registration Disabled State */}
-                    {!fetchingConfig && !registrationEnabled ? (
+                    {!registrationEnabled ? (
                         <div style={{ textAlign: 'center', padding: '30px 20px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '12px', marginBottom: '20px' }}>
                             <AlertCircle style={{ width: 32, height: 32, color: '#d97706', margin: '0 auto 12px' }} />
                             <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#92400e', margin: '0 0 8px' }}>Registrations Currently Closed</h3>
@@ -198,7 +164,7 @@ export const RegisterPage: React.FC = () => {
                     ) : (
                         <>
                             {/* System Limitations */}
-                            {!fetchingLimitations && limitations && (
+                            {limitations && (
                                 <div style={{ marginBottom: '24px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '12px', padding: '16px' }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
                                         <AlertCircle style={{ width: 18, height: 18, color: '#d97706' }} />

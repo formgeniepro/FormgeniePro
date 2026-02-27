@@ -1,5 +1,6 @@
 import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { AppDataProvider } from './contexts/AppDataContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { HomePage } from './pages/HomePage';
 import { LoginPage } from './pages/LoginPage';
@@ -37,7 +38,9 @@ const App: React.FC = () => {
   return (
     <HashRouter>
       <AuthProvider>
-        <AppRoutes />
+        <AppDataProvider>
+          <AppRoutes />
+        </AppDataProvider>
       </AuthProvider>
     </HashRouter>
   );

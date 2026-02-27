@@ -8,7 +8,8 @@ import { fetchUrlContent } from '../services/proxyService';
 import { parseFormHTML } from '../services/parserService';
 import { FormPreview } from '../components/FormPreview';
 import { Spinner } from '../components/Spinner';
-import { creditsApi, guidelinesApi, settingsApi } from '../services/api';
+import { creditsApi } from '../services/api';
+import { useAppData } from '../contexts/AppDataContext';
 import { Link2, FileCode2, AlertCircle, Sparkles, Zap, CreditCard, TrendingUp, Activity, Menu, FileText } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TelegramButton } from '../components/TelegramButton';
@@ -107,20 +108,10 @@ const AutomateForm: React.FC = () => {
     const [inputType, setInputType] = useState<'url' | 'html'>('url');
     const [parsedForm, setParsedForm] = useState<ParsedForm | null>(null);
     const [status, setStatus] = useState<GenerationState>({ status: 'idle' });
-    const [guidelinesUrl, setGuidelinesUrl] = useState('');
-    const [guidelinesLoading, setGuidelinesLoading] = useState(true);
-    const [limitations, setLimitations] = useState('');
-    const [limitationsLoading, setLimitationsLoading] = useState(true);
+    const { guidelinesUrl, limitations } = useAppData();
+    const guidelinesLoading = false;
+    const limitationsLoading = false;
 
-    useEffect(() => {
-        guidelinesApi.get().then(data => {
-            setGuidelinesUrl(data.url || '');
-        }).catch(() => { }).finally(() => setGuidelinesLoading(false));
-
-        settingsApi.getLimitations().then(data => {
-            setLimitations(data.limitations || '');
-        }).catch(() => { }).finally(() => setLimitationsLoading(false));
-    }, []);
 
     const handleImport = async () => {
         if (inputType === 'url' && !url) return;

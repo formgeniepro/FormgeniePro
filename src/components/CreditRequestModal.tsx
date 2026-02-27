@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { X, Upload, CheckCircle, AlertCircle, CreditCard, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { creditRequestsApi, settingsApi, paymentQrApi } from '../services/api';
+import { creditRequestsApi } from '../services/api';
+import { useAppData } from '../contexts/AppDataContext';
 import { Spinner } from './Spinner';
 
 interface Plan {
@@ -26,27 +27,11 @@ export const CreditRequestModal: React.FC<CreditRequestModalProps> = ({ isOpen, 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
-    const [plans, setPlans] = useState<Plan[]>([]);
-    const [fetchingConfig, setFetchingConfig] = useState(true);
+    const { appConfig, paymentQrUrl } = useAppData();
+    const plans = appConfig.plans;
+    const qrUrl = paymentQrUrl;
 
-    const [qrUrl, setQrUrl] = useState('');
 
-    React.useEffect(() => {
-        if (isOpen) {
-            settingsApi.getAppConfig()
-                .then(data => {
-                    if (data.config && data.config.plans) {
-                        setPlans(data.config.plans);
-                    }
-                })
-                .catch(() => { })
-                .finally(() => setFetchingConfig(false));
-
-            paymentQrApi.get()
-                .then(data => { if (data.url) setQrUrl(data.url); })
-                .catch(() => { });
-        }
-    }, [isOpen]);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -198,48 +183,44 @@ export const CreditRequestModal: React.FC<CreditRequestModalProps> = ({ isOpen, 
                                 <form onSubmit={handleSubmit}>
                                     {/* Plan Selection */}
                                     <label style={labelStyle}>Select Package</label>
-                                    {fetchingConfig ? (
-                                        <div style={{ padding: '20px', textAlign: 'center' }}><Spinner /></div>
-                                    ) : (
-                                        <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
-                                            {plans.map((plan) => {
-                                                const isSelected = selectedPlan === plan.value;
-                                                return (
-                                                    <div
-                                                        key={plan.value}
-                                                        onClick={() => setSelectedPlan(plan.value)}
-                                                        style={{
-                                                            flex: 1, padding: '14px 10px', borderRadius: '12px', cursor: 'pointer',
-                                                            border: isSelected ? '2px solid #4285F4' : '2px solid #e8e5f0',
-                                                            background: isSelected ? 'linear-gradient(135deg, #eff6ff, #e8f0fe)' : '#fafafa',
-                                                            textAlign: 'center', transition: 'all 0.2s', position: 'relative',
-                                                        }}
-                                                    >
-                                                        {plan.popular && (
-                                                            <span style={{
-                                                                position: 'absolute', top: '-8px', left: '50%', transform: 'translateX(-50%)',
-                                                                background: 'linear-gradient(135deg, #4285F4, #5a9cf5)', color: 'white',
-                                                                fontSize: '9px', fontWeight: 700, padding: '2px 8px', borderRadius: '10px',
-                                                                textTransform: 'uppercase', letterSpacing: '0.5px',
-                                                            }}>
-                                                                Popular
-                                                            </span>
-                                                        )}
-                                                        <div style={{ fontSize: '22px', fontWeight: 800, color: isSelected ? '#4285F4' : '#1e1b2e' }}>
-                                                            {plan.credits}
-                                                        </div>
-                                                        <div style={{ fontSize: '11px', color: '#6b6580', marginTop: '2px' }}>credits</div>
-                                                        <div style={{
-                                                            marginTop: '8px', fontSize: '14px', fontWeight: 700,
-                                                            color: isSelected ? '#4285F4' : '#374151',
+                                    <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
+                                        {plans.map((plan) => {
+                                            const isSelected = selectedPlan === plan.value;
+                                            return (
+                                                <div
+                                                    key={plan.value}
+                                                    onClick={() => setSelectedPlan(plan.value)}
+                                                    style={{
+                                                        flex: 1, padding: '14px 10px', borderRadius: '12px', cursor: 'pointer',
+                                                        border: isSelected ? '2px solid #4285F4' : '2px solid #e8e5f0',
+                                                        background: isSelected ? 'linear-gradient(135deg, #eff6ff, #e8f0fe)' : '#fafafa',
+                                                        textAlign: 'center', transition: 'all 0.2s', position: 'relative',
+                                                    }}
+                                                >
+                                                    {plan.popular && (
+                                                        <span style={{
+                                                            position: 'absolute', top: '-8px', left: '50%', transform: 'translateX(-50%)',
+                                                            background: 'linear-gradient(135deg, #4285F4, #5a9cf5)', color: 'white',
+                                                            fontSize: '9px', fontWeight: 700, padding: '2px 8px', borderRadius: '10px',
+                                                            textTransform: 'uppercase', letterSpacing: '0.5px',
                                                         }}>
-                                                            ₹{plan.price}
-                                                        </div>
+                                                            Popular
+                                                        </span>
+                                                    )}
+                                                    <div style={{ fontSize: '22px', fontWeight: 800, color: isSelected ? '#4285F4' : '#1e1b2e' }}>
+                                                        {plan.credits}
                                                     </div>
-                                                );
-                                            })}
-                                        </div>
-                                    )}
+                                                    <div style={{ fontSize: '11px', color: '#6b6580', marginTop: '2px' }}>credits</div>
+                                                    <div style={{
+                                                        marginTop: '8px', fontSize: '14px', fontWeight: 700,
+                                                        color: isSelected ? '#4285F4' : '#374151',
+                                                    }}>
+                                                        ₹{plan.price}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
 
                                     {/* Divider */}
                                     <div style={{ borderTop: '1px solid #e8e5f0', margin: '20px 0', position: 'relative' }}>
