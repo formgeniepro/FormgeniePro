@@ -139,7 +139,7 @@ function handleRegister(data) {
   const timestamp = new Date().toISOString();
   // Password stored as plain text for GAS demo simplicity
   
-  const credits = data.plan === 'basic' ? 75 : data.plan === 'starter' ? 150 : 320;
+  const credits = data.credits !== undefined ? Number(data.credits) : (data.plan === 'basic' ? 75 : data.plan === 'starter' ? 150 : 320);
   
   // Upload Screenshot if present
   let screenshotUrl = '';
@@ -196,7 +196,7 @@ function handleLogin(data) {
 
   for (let i = 1; i < users.length; i++) {
     const row = users[i];
-    if (row[2] === data.username && row[4] === data.password) {
+    if (String(row[2]) === String(data.username) && String(row[4]) === String(data.password)) {
       if (row[8] === 'pending') return errorResponse('Account pending approval');
       if (row[8] === 'disabled' || row[8] === 'rejected') return errorResponse('Account disabled');
 

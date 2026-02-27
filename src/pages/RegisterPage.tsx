@@ -81,6 +81,13 @@ export const RegisterPage: React.FC = () => {
         try {
             const formData = new FormData();
             Object.entries(form).forEach(([key, val]) => formData.append(key, val));
+
+            // Append the dynamically fetched credits for the selected plan
+            const selectedPlan = plans.find(p => p.value === form.plan);
+            if (selectedPlan) {
+                formData.append('credits', selectedPlan.credits.toString());
+            }
+
             if (screenshot) formData.append('screenshot', screenshot);
 
             await register(formData);
