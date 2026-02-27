@@ -2,12 +2,12 @@ import React, { useState, useEffect } from 'react';
 import logoImg from '../assets/logo.png';
 import { Routes, Route } from 'react-router-dom';
 import { Sidebar } from '../components/Sidebar';
-import { adminApi, announcementsApi, creditRequestsApi, guidelinesApi, settingsApi } from '../services/api';
 import { Spinner } from '../components/Spinner';
+import { adminApi, announcementsApi, creditRequestsApi, guidelinesApi, settingsApi, paymentQrApi } from '../services/api';
 import {
     Users, CheckCircle, XCircle, Clock, Eye, Plus, Minus,
     Search, Filter, ChevronDown, AlertCircle, CreditCard,
-    Megaphone, Trash2, ToggleLeft, ToggleRight, Send, Menu, Sparkles, FileText, Upload, RefreshCw
+    Megaphone, Trash2, ToggleLeft, ToggleRight, Send, Menu, Sparkles, FileText, Upload, RefreshCw, Image as ImageIcon
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -806,6 +806,149 @@ const CreditRequestsManager: React.FC = () => {
     );
 };
 
+// ─── Payment QR Manager ──────────────────────────────
+const PaymentQRManager: React.FC = () => {
+    const [qrUrl, setQrUrl] = useState('');
+    const [loading, setLoading] = useState(true);
+    const [uploading, setUploading] = useState(false);
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+    const fetchQR = async () => {
+        try {
+            const data = await paymentQrApi.get();
+            setQrUrl(data.url || '');
+        } catch {
+            // ignore
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => { fetchQR(); }, []);
+
+    const handleUpload = async () => {
+        if (!selectedFile) return;
+        setUploading(true);
+        setFeedback(null);
+        try {
+            await paymentQrApi.upload(selectedFile);
+            setFeedback({ type: 'success', text: 'Payment QR image uploaded successfully!' });
+            setSelectedFile(null);
+            setLoading(true);
+            await fetchQR();
+        } catch (err: any) {
+            setFeedback({ type: 'error', text: err.error || 'Failed to upload QR image' });
+        } finally {
+            setUploading(false);
+        }
+    };
+
+    return (
+        <div>
+            {/* Feedback */}
+            <AnimatePresence>
+                {feedback && (
+                    <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                        style={{
+                            display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 16px',
+                            borderRadius: '10px', marginBottom: '16px', fontSize: '13px', fontWeight: 500,
+                            background: feedback.type === 'success' ? '#ecfdf5' : '#fef2f2',
+                            border: `1px solid ${feedback.type === 'success' ? '#a7f3d0' : '#fecaca'}`,
+                            color: feedback.type === 'success' ? '#065f46' : '#991b1b',
+                        }}>
+                        {feedback.type === 'success' ? <CheckCircle style={{ width: 16, height: 16 }} /> : <AlertCircle style={{ width: 16, height: 16 }} />}
+                        {feedback.text}
+                        <button onClick={() => setFeedback(null)} style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', fontSize: '16px' }}>×</button>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Upload Section */}
+            <div style={{ background: '#fff', borderRadius: '14px', border: '1px solid #e8e5f0', padding: '24px', marginBottom: '24px', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+                    <Upload style={{ width: 18, height: 18, color: '#4285F4' }} />
+                    <span style={{ fontSize: '14px', fontWeight: 700, color: '#1e1b2e' }}>
+                        {qrUrl ? 'Replace Payment QR Image' : 'Upload Payment QR Image'}
+                    </span>
+                </div>
+
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+                    <label style={{
+                        flex: 1, minWidth: '200px', display: 'flex', alignItems: 'center', gap: '10px',
+                        padding: '12px 16px', borderRadius: '10px', border: '2px dashed #d4cfe0',
+                        background: '#fafafa', cursor: 'pointer', transition: 'all 0.2s',
+                    }}>
+                        <ImageIcon style={{ width: 20, height: 20, color: '#9e97b0', flexShrink: 0 }} />
+                        <span style={{ fontSize: '13px', color: selectedFile ? '#1e1b2e' : '#9e97b0', fontWeight: selectedFile ? 600 : 400 }}>
+                            {selectedFile ? selectedFile.name : 'Choose a QR image (PNG, JPG)...'}
+                        </span>
+                        <input type="file" accept="image/*" style={{ display: 'none' }}
+                            onChange={(e) => { if (e.target.files?.[0]) setSelectedFile(e.target.files[0]); }} />
+                    </label>
+
+                    <button onClick={handleUpload} disabled={!selectedFile || uploading}
+                        style={{
+                            display: 'flex', alignItems: 'center', gap: '8px',
+                            padding: '12px 24px', borderRadius: '10px', border: 'none',
+                            background: (!selectedFile || uploading) ? '#d1d5db' : 'linear-gradient(135deg, #4285F4, #5a9cf5)',
+                            color: 'white', fontSize: '13px', fontWeight: 600,
+                            cursor: (!selectedFile || uploading) ? 'not-allowed' : 'pointer',
+                            boxShadow: (!selectedFile || uploading) ? 'none' : '0 4px 16px rgba(66,133,244,0.25)',
+                            whiteSpace: 'nowrap',
+                        }}>
+                        {uploading ? <><Spinner size="h-4 w-4" /> Uploading...</> : <><Upload style={{ width: 14, height: 14 }} /> Upload QR</>}
+                    </button>
+                </div>
+            </div>
+
+            {/* Current QR Preview */}
+            <div style={{ background: '#fff', borderRadius: '14px', border: '1px solid #e8e5f0', padding: '24px', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <ImageIcon style={{ width: 18, height: 18, color: '#10b981' }} />
+                        <span style={{ fontSize: '14px', fontWeight: 700, color: '#1e1b2e' }}>Current Payment QR</span>
+                    </div>
+                    {qrUrl && (
+                        <button onClick={() => { setLoading(true); fetchQR(); }}
+                            style={{
+                                display: 'flex', alignItems: 'center', gap: '6px',
+                                padding: '6px 12px', borderRadius: '8px', border: '1px solid #e8e5f0',
+                                background: '#fff', color: '#6b6580', fontSize: '11px', fontWeight: 600, cursor: 'pointer',
+                            }}>
+                            <RefreshCw style={{ width: 12, height: 12 }} /> Refresh
+                        </button>
+                    )}
+                </div>
+
+                {loading ? (
+                    <div style={{ display: 'flex', justifyContent: 'center', padding: '60px' }}>
+                        <Spinner />
+                    </div>
+                ) : qrUrl ? (
+                    <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                        <div style={{
+                            display: 'inline-block', padding: '16px',
+                            background: 'white', borderRadius: '12px', border: '2px solid #e8e5f0',
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+                        }}>
+                            <img src={qrUrl} alt="Payment QR Code" referrerPolicy="no-referrer"
+                                style={{ width: '200px', height: '200px', objectFit: 'contain', display: 'block' }} />
+                        </div>
+                        <p style={{ fontSize: '12px', color: '#9e97b0', marginTop: '12px' }}>This QR is displayed on the Registration and Credit Request pages.</p>
+                    </div>
+                ) : (
+                    <div style={{ textAlign: 'center', padding: '60px 0', color: '#9e97b0' }}>
+                        <ImageIcon style={{ width: 40, height: 40, margin: '0 auto 12px', opacity: 0.4 }} />
+                        <p style={{ fontSize: '14px', fontWeight: 500 }}>No Payment QR image uploaded yet</p>
+                        <p style={{ fontSize: '12px', color: '#b8b3c8' }}>Upload a QR image above to get started</p>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+};
+
 // ─── Guidelines Manager ────────────────────────────
 const GuidelinesManager: React.FC = () => {
     const [pdfUrl, setPdfUrl] = useState('');
@@ -847,6 +990,18 @@ const GuidelinesManager: React.FC = () => {
 
     return (
         <div>
+            <div style={{ marginBottom: '40px' }}>
+                <h1 style={{ fontSize: '24px', fontWeight: 700, color: '#1e1b2e', marginBottom: '4px' }}>
+                    Payment QR Code
+                </h1>
+                <p style={{ color: '#6b6580', fontSize: '14px', marginBottom: '24px' }}>
+                    Upload a QR code image for payments. It will be displayed on the Registration and Credit Request pages.
+                </p>
+                <PaymentQRManager />
+            </div>
+
+            <div style={{ height: '1px', background: '#e8e5f0', margin: '40px 0' }} />
+
             <div style={{ marginBottom: '40px' }}>
                 <h1 style={{ fontSize: '24px', fontWeight: 700, color: '#1e1b2e', marginBottom: '4px' }}>
                     Global Settings

@@ -108,6 +108,8 @@ function doPost(e) {
       case 'getAppConfig': return handleGetAppConfig(data);
       case 'updateAppConfig': return handleUpdateAppConfig(data);
       case 'logAutomation': return handleLogAutomation(data);
+      case 'uploadPaymentQR': return handleUploadPaymentQR(data);
+      case 'getPaymentQR': return handleGetPaymentQR(data);
       default: return errorResponse('Invalid action');
     }
   } catch (error) {
@@ -813,6 +815,62 @@ function handleUpdateAppConfig(data) {
   }
 
   return successResponse({ message: 'Configuration updated successfully' });
+}
+
+// ─── PAYMENT QR HANDLERS ────────────────────────────
+
+function handleUploadPaymentQR(data) {
+  if (!data.imageBase64) return errorResponse('No image file provided');
+
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var settingsSheet = ss.getSheetByName(SHEET_SETTINGS);
+  if (!settingsSheet) {
+    settingsSheet = ss.insertSheet(SHEET_SETTINGS);
+    settingsSheet.appendRow(['key', 'value']);
+  }
+
+  // Delete previous QR file from Drive if exists
+  var rows = settingsSheet.getDataRange().getValues();
+  for (var i = 1; i < rows.length; i++) {
+    if (rows[i][0] === 'payment_qr_file_id') {
+      try {
+        DriveApp.getFileById(rows[i][1]).setTrashed(true);
+      } catch (e) { /* file may already be deleted */ }
+      settingsSheet.deleteRow(i + 1);
+      break;
+    }
+  }
+
+  // Upload new image to Drive
+  try {
+    var folder = DriveApp.getFolderById(DRIVE_FOLDER_ID);
+    var blob = Utilities.newBlob(Utilities.base64Decode(data.imageBase64), data.mimeType || 'image/png', 'PaymentQR');
+    var file = folder.createFile(blob);
+    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    var fileId = file.getId();
+
+    // Save file ID to Settings sheet
+    settingsSheet.appendRow(['payment_qr_file_id', fileId]);
+
+    return successResponse({ message: 'Payment QR uploaded successfully', fileId: fileId });
+  } catch (e) {
+    return errorResponse('Failed to upload QR image: ' + e.toString());
+  }
+}
+
+function handleGetPaymentQR(data) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var settingsSheet = ss.getSheetByName(SHEET_SETTINGS);
+  if (!settingsSheet) return successResponse({ url: '' });
+
+  var rows = settingsSheet.getDataRange().getValues();
+  for (var i = 1; i < rows.length; i++) {
+    if (rows[i][0] === 'payment_qr_file_id') {
+      var fileId = rows[i][1];
+      return successResponse({ url: 'https://lh3.googleusercontent.com/d/' + fileId });
+    }
+  }
+  return successResponse({ url: '' });
 }
 
 // ─── UTILS ──────────────────────────────────────────

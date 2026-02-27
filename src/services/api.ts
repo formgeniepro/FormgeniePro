@@ -166,8 +166,14 @@ export const creditsApi = {
     getLogs: () => Promise.resolve({ logs: [] }), // Placeholder
 };
 
-// ─── QR Code ──────────────────────────────────────
-export const getQrCodeUrl = () => Promise.resolve({ url: '' }); // Placeholder
+// ─── Payment QR API ──────────────────────────────
+export const paymentQrApi = {
+    upload: async (file: File) => {
+        const imageBase64 = await fileToBase64(file);
+        return apiRequest('uploadPaymentQR', { imageBase64, mimeType: file.type });
+    },
+    get: () => apiRequest('getPaymentQR'),
+};
 
 // ─── Announcements API ───────────────────────────
 export const announcementsApi = {

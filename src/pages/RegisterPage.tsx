@@ -6,7 +6,7 @@ import { UserPlus, AlertCircle, CheckCircle, Upload, Image, Sparkles, FileText }
 import { motion } from 'framer-motion';
 import { Spinner } from '../components/Spinner';
 import { TelegramButton } from '../components/TelegramButton';
-import { getQrCodeUrl, settingsApi, guidelinesApi } from '../services/api';
+import { getStoredUser, paymentQrApi, settingsApi, guidelinesApi } from '../services/api';
 
 interface Plan {
     value: string;
@@ -24,7 +24,7 @@ export const RegisterPage: React.FC = () => {
     });
     const [screenshot, setScreenshot] = useState<File | null>(null);
     const [screenshotPreview, setScreenshotPreview] = useState<string>('');
-    const [qrUrl] = useState('https://lh3.googleusercontent.com/d/1WpQ-BfetJZjCo-MI5Dbj2SU6syyPhcy6');
+    const [qrUrl, setQrUrl] = useState('');
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const [loading, setLoading] = useState(false);
@@ -51,6 +51,10 @@ export const RegisterPage: React.FC = () => {
 
         guidelinesApi.get().then(data => {
             if (data.url) setGuidelinesUrl(data.url);
+        }).catch(() => { });
+
+        paymentQrApi.get().then(data => {
+            if (data.url) setQrUrl(data.url);
         }).catch(() => { });
     }, []);
 

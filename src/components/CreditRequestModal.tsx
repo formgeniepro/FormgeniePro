@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { X, Upload, CheckCircle, AlertCircle, CreditCard, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { creditRequestsApi, settingsApi } from '../services/api';
+import { creditRequestsApi, settingsApi, paymentQrApi } from '../services/api';
 import { Spinner } from './Spinner';
 
 interface Plan {
@@ -29,7 +29,7 @@ export const CreditRequestModal: React.FC<CreditRequestModalProps> = ({ isOpen, 
     const [plans, setPlans] = useState<Plan[]>([]);
     const [fetchingConfig, setFetchingConfig] = useState(true);
 
-    const qrUrl = 'https://lh3.googleusercontent.com/d/1WpQ-BfetJZjCo-MI5Dbj2SU6syyPhcy6';
+    const [qrUrl, setQrUrl] = useState('');
 
     React.useEffect(() => {
         if (isOpen) {
@@ -41,6 +41,10 @@ export const CreditRequestModal: React.FC<CreditRequestModalProps> = ({ isOpen, 
                 })
                 .catch(() => { })
                 .finally(() => setFetchingConfig(false));
+
+            paymentQrApi.get()
+                .then(data => { if (data.url) setQrUrl(data.url); })
+                .catch(() => { });
         }
     }, [isOpen]);
 
