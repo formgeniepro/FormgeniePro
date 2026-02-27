@@ -281,9 +281,35 @@ function handleUserAction(data, action) {
   const rows = sheet.getDataRange().getValues();
   const newStatus = action === 'approve' ? 'approved' : 'rejected';
 
+  // Load app config to get correct plan credits
+  let planCreditsMap = {};
+  try {
+    const settingsSheet = ss.getSheetByName(SHEET_SETTINGS);
+    if (settingsSheet) {
+      const settingsRows = settingsSheet.getDataRange().getValues();
+      for (let s = 1; s < settingsRows.length; s++) {
+        if (settingsRows[s][0] === 'app_config') {
+          const config = JSON.parse(settingsRows[s][1]);
+          if (config.plans) {
+            config.plans.forEach(p => { planCreditsMap[p.value] = p.credits; });
+          }
+          break;
+        }
+      }
+    }
+  } catch(e) { /* ignore, fall back to stored credits */ }
+
   for (let i = 1; i < rows.length; i++) {
     if (rows[i][0] === data.userId) { // userId passed in body
       sheet.getRange(i + 1, 9).setValue(newStatus); // Status is col 9
+
+      // ✅ On approval: update credits from app config based on the user's plan
+      if (action === 'approve') {
+        const userPlan = rows[i][6]; // Plan is col 7 (index 6)
+        if (userPlan && planCreditsMap[userPlan] !== undefined) {
+          sheet.getRange(i + 1, 8).setValue(planCreditsMap[userPlan]); // Credits col 8
+        }
+      }
       
       // 📧 SEND EMAIL TO USER IF APPROVED
       const userEmail = rows[i][3]; // Email is col 3
@@ -471,9 +497,27 @@ function handleRequestCredits(data) {
   }
   if (!userId) return errorResponse('User not found');
 
-  // Determine credits and amount from plan
+  // Determine credits and amount from plan — use app config if available
   var creditsMap = { 'basic': 75, 'starter': 150, 'pro': 320 };
-  var amountMap = { 'basic': 50, 'starter': 100, 'pro': 200 };
+  var amountMap  = { 'basic': 50, 'starter': 100, 'pro': 200 };
+  try {
+    var cfgSheet = ss.getSheetByName(SHEET_SETTINGS);
+    if (cfgSheet) {
+      var cfgRows = cfgSheet.getDataRange().getValues();
+      for (var ci = 1; ci < cfgRows.length; ci++) {
+        if (cfgRows[ci][0] === 'app_config') {
+          var cfg = JSON.parse(cfgRows[ci][1]);
+          if (cfg.plans) {
+            cfg.plans.forEach(function(p) {
+              creditsMap[p.value] = p.credits;
+              amountMap[p.value]  = p.price;
+            });
+          }
+          break;
+        }
+      }
+    }
+  } catch(e) { /* fallback to defaults */ }
   var creditsRequested = creditsMap[data.plan] || 0;
   var amount = amountMap[data.plan] || 0;
   if (!creditsRequested) return errorResponse('Invalid plan selected');
