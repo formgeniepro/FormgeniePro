@@ -28,7 +28,7 @@ export const Footer: React.FC = () => {
                 gap: '4px'
             }}
         >
-            Crafted by AK <span style={{ color: '#f87171' }}>❤️</span>
+            Crafted with <span style={{ color: '#f87171' }}>❤️</span>
         </motion.div>
     );
 };
