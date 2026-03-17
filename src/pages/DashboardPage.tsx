@@ -6,6 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { ParsedForm, GenerationState } from '../types';
 import { fetchUrlContent } from '../services/proxyService';
 import { parseFormHTML } from '../services/parserService';
+import { parseMicrosoftFormData } from '../services/microsoftFormsParser';
 import { FormPreview } from '../components/FormPreview';
 import { Spinner } from '../components/Spinner';
 import { creditsApi } from '../services/api';
@@ -104,8 +105,7 @@ const DashboardOverview: React.FC = () => {
 const AutomateForm: React.FC = () => {
     const { user, refreshCredits } = useAuth();
     const [url, setUrl] = useState('');
-    const [manualHtml, setManualHtml] = useState('');
-    const [inputType, setInputType] = useState<'url' | 'html'>('url');
+    const [inputType, setInputType] = useState<'google' | 'microsoft'>('google');
     const [parsedForm, setParsedForm] = useState<ParsedForm | null>(null);
     const [status, setStatus] = useState<GenerationState>({ status: 'idle' });
     const { guidelinesUrl, limitations } = useAppData();
@@ -114,8 +114,7 @@ const AutomateForm: React.FC = () => {
 
 
     const handleImport = async () => {
-        if (inputType === 'url' && !url) return;
-        if (inputType === 'html' && !manualHtml) return;
+        if (!url) return;
 
         // Credit check before importing (for users)
         if (user?.role !== 'admin') {
@@ -126,17 +125,25 @@ const AutomateForm: React.FC = () => {
         }
 
         try {
-            let htmlContent = '';
-            if (inputType === 'url') {
-                setStatus({ status: 'fetching_html', message: 'Fetching form content...' });
-                htmlContent = await fetchUrlContent(url);
+            if (inputType === 'google') {
+                setStatus({ status: 'fetching_html', message: 'Fetching Google Form content...' });
+                const htmlContent = await fetchUrlContent(url);
+                setStatus({ status: 'analyzing', message: 'Parsing Google Form structure...' });
+                await new Promise(resolve => setTimeout(resolve, 100));
+                const formStructure = await parseFormHTML(htmlContent);
+                setParsedForm({ ...formStructure, formSource: 'google' });
             } else {
-                htmlContent = manualHtml;
+                setStatus({ status: 'fetching_html', message: 'Fetching Microsoft Form content...' });
+                // We import this dynamically because we didn't add fetchMicrosoftFormData to imports above (only fetchUrlContent is there)
+                const { fetchMicrosoftFormData } = await import('../services/proxyService');
+                const { formMeta, questions } = await fetchMicrosoftFormData(url);
+                setStatus({ status: 'analyzing', message: 'Parsing Microsoft Form structure...' });
+                await new Promise(resolve => setTimeout(resolve, 100));
+                const { extractMsFormId } = await import('../services/microsoftFormsParser');
+                const formId = extractMsFormId(url) || 'unknown';
+                const formStructure = await parseMicrosoftFormData(formMeta, questions, formId, url);
+                setParsedForm(formStructure);
             }
-            setStatus({ status: 'analyzing', message: 'Parsing form structure...' });
-            await new Promise(resolve => setTimeout(resolve, 100));
-            const formStructure = await parseFormHTML(htmlContent);
-            setParsedForm(formStructure);
             setStatus({ status: 'success' });
         } catch (error: any) {
             setStatus({ status: 'error', message: error.message || 'Something went wrong.' });
@@ -147,12 +154,11 @@ const AutomateForm: React.FC = () => {
         setParsedForm(null);
         setStatus({ status: 'idle' });
         setUrl('');
-        setManualHtml('');
         refreshCredits();
     };
 
     const isLoading = status.status === 'fetching_html' || status.status === 'analyzing';
-    const isDisabled = isLoading || (inputType === 'url' && !url) || (inputType === 'html' && !manualHtml);
+    const isDisabled = isLoading || !url;
 
     if (parsedForm) {
         return <FormPreview form={parsedForm} onBack={reset} />;
@@ -190,48 +196,37 @@ const AutomateForm: React.FC = () => {
                         display: 'flex', background: '#f8f7fc', borderRadius: '12px', padding: '4px',
                         marginBottom: '24px', border: '1px solid #e8e5f0',
                     }}>
-                        {(['url', 'html'] as const).map((type) => (
+                        {(['google', 'microsoft'] as const).map((type) => (
                             <button key={type} onClick={() => setInputType(type)}
                                 style={{
                                     flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
                                     padding: '10px', borderRadius: '10px', border: 'none', cursor: 'pointer',
                                     fontSize: '13px', fontWeight: 500, transition: 'all 0.2s',
                                     background: inputType === type ? '#fff' : 'transparent',
-                                    color: inputType === type ? '#4285F4' : '#9e97b0',
+                                    color: inputType === type ? (type === 'google' ? '#4285F4' : '#0078D4') : '#9e97b0',
                                     boxShadow: inputType === type ? '0 1px 4px rgba(0,0,0,0.06)' : 'none',
                                 }}>
-                                {type === 'url' ? <><Link2 style={{ width: 15, height: 15 }} /> Public URL</> : <><FileCode2 style={{ width: 15, height: 15 }} /> Source HTML</>}
+                                {type === 'google' ? <><Link2 style={{ width: 15, height: 15 }} /> Google Form URL</> : <><Link2 style={{ width: 15, height: 15 }} /> Microsoft Form URL</>}
                             </button>
                         ))}
                     </div>
 
                     {/* Input */}
-                    {inputType === 'url' ? (
-                        <div>
-                            <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#9e97b0', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>Google Form Link</label>
-                            <input type="url" value={url} onChange={(e) => setUrl(e.target.value)}
-                                placeholder="https://docs.google.com/forms/d/e/..."
-                                style={{
-                                    width: '100%', background: '#fafafa', border: '1px solid #e8e5f0', borderRadius: '10px',
-                                    padding: '12px 16px', fontSize: '14px', color: '#1e1b2e', outline: 'none',
-                                    boxSizing: 'border-box', transition: 'all 0.2s',
-                                }} />
-                            <p style={{ fontSize: '11px', color: '#9e97b0', marginTop: '8px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                <Zap style={{ width: 12, height: 12, color: '#f59e0b' }} /> Try "Source HTML" if URL blocked by CORS
-                            </p>
-                        </div>
-                    ) : (
-                        <div>
-                            <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#9e97b0', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>Paste Page Source</label>
-                            <textarea value={manualHtml} onChange={(e) => setManualHtml(e.target.value)}
-                                placeholder="<html>...</html>" rows={6}
-                                style={{
-                                    width: '100%', background: '#fafafa', border: '1px solid #e8e5f0', borderRadius: '10px',
-                                    padding: '12px 16px', fontSize: '12px', fontFamily: 'monospace', color: '#1e1b2e',
-                                    outline: 'none', resize: 'none', boxSizing: 'border-box',
-                                }} />
-                        </div>
-                    )}
+                    <div>
+                        <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#9e97b0', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>
+                            {inputType === 'google' ? 'Google Form Link' : 'Microsoft Forms Link'}
+                        </label>
+                        <input type="url" value={url} onChange={(e) => setUrl(e.target.value)}
+                            placeholder={inputType === 'google' ? "https://docs.google.com/forms/d/e/..." : "https://forms.office.com/Pages/ResponsePage.aspx?id=..."}
+                            style={{
+                                width: '100%', background: '#fafafa', border: '1px solid #e8e5f0', borderRadius: '10px',
+                                padding: '12px 16px', fontSize: '14px', color: '#1e1b2e', outline: 'none',
+                                boxSizing: 'border-box', transition: 'all 0.2s',
+                            }} />
+                        <p style={{ fontSize: '11px', color: '#9e97b0', marginTop: '8px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <Zap style={{ width: 12, height: 12, color: '#f59e0b' }} /> {inputType === 'google' ? 'Direct URL parsing via CORS Proxy' : 'Make sure Microsoft Form permissions allow "Anyone can respond"'}
+                        </p>
+                    </div>
 
                     {/* Error */}
                     {status.status === 'error' && (
@@ -282,7 +277,7 @@ const AutomateForm: React.FC = () => {
                         padding: '24px', boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
                     }}>
                         <ul style={{ margin: 0, paddingLeft: '24px', color: '#92400e', fontSize: '14px', lineHeight: 1.6 }}>
-                            {limitations.split('\n').filter(line => line.trim() !== '').map((line, idx) => (
+                            {limitations.split('\n').filter((line: string) => line.trim() !== '').map((line: string, idx: number) => (
                                 <li key={idx} style={{ marginBottom: '8px' }}>{line}</li>
                             ))}
                         </ul>

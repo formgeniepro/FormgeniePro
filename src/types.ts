@@ -50,6 +50,7 @@ export interface ParsedForm {
   documentTitle?: string;
   actionUrl?: string; // The URL to POST data to
   fbzx?: string; // Google Form Security Token
+  formSource?: 'google' | 'microsoft'; // Tracks which platform this form came from
   items: FormItem[];
 }
 

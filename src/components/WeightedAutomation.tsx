@@ -240,41 +240,95 @@ export const WeightedAutomation: React.FC<WeightedAutomationProps> = ({ form, on
                 break;
             }
             try {
-                const formData = new URLSearchParams();
-                if (form.fbzx) {
-                    formData.append('fbzx', form.fbzx);
-                }
-                const sectionBreaks = form.items.filter(i => i.isPageBreak).length;
-                if (sectionBreaks > 0) {
-                    const history = Array.from({ length: sectionBreaks + 1 }, (_, k) => k).join(',');
-                    formData.append('pageHistory', history);
-                }
-                formData.append('draftResponse', '[]');
+                if (form.formSource === 'microsoft') {
+                    // MICROSOFT FORMS SUBMISSION
+                    const msAnswers: any[] = [];
+                    
+                    form.items.forEach(item => {
+                        if (item.type === QuestionType.SECTION_HEADER) return;
 
-                form.items.forEach(item => {
-                    if (item.type === QuestionType.MULTIPLE_CHOICE_GRID || item.type === QuestionType.CHECKBOX_GRID) {
-                        const gridData = generateGridResponse(item);
-                        Object.entries(gridData).forEach(([rowId, val]) => {
-                            formData.append(`entry.${rowId}`, val);
-                        });
-                    } else {
-                        const scheduledValue = batchSchedule[item.id]?.[i];
-                        if (scheduledValue !== undefined && item.submissionId) {
-                            if (Array.isArray(scheduledValue)) {
-                                scheduledValue.forEach(val => formData.append(`entry.${item.submissionId}`, val));
-                            } else {
-                                formData.append(`entry.${item.submissionId}`, scheduledValue);
+                        if (item.type === QuestionType.MULTIPLE_CHOICE_GRID || item.type === QuestionType.CHECKBOX_GRID) {
+                            const gridData = generateGridResponse(item);
+                            // MS Forms grid format: answers: [{questionId: rowId, answer1: colLabel}]
+                            Object.entries(gridData).forEach(([rowId, colLabel]) => {
+                                msAnswers.push({
+                                    questionId: rowId,
+                                    answer1: colLabel
+                                });
+                            });
+                        } else {
+                            const scheduledValue = batchSchedule[item.id]?.[i];
+                            if (scheduledValue !== undefined && scheduledValue !== "N/A" && item.submissionId) {
+                                // Date questions need specific MS Forms valid format (YYYY-MM-DD), but we'll send verbatim for now if any
+                                if (Array.isArray(scheduledValue)) {
+                                    msAnswers.push({
+                                        questionId: item.submissionId,
+                                        answer1: JSON.stringify(scheduledValue) // MS forms accepts array of strings as a JSON string for checkboxes
+                                    });
+                                } else {
+                                    msAnswers.push({
+                                        questionId: item.submissionId,
+                                        answer1: scheduledValue.toString()
+                                    });
+                                }
                             }
                         }
-                    }
-                });
+                    });
 
-                await fetch(form.actionUrl, {
-                    method: 'POST',
-                    mode: 'no-cors',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: formData
-                });
+                    const submitDate = new Date().toISOString();
+                    const msPayload = {
+                        startDate: submitDate,
+                        submitDate: submitDate,
+                        answers: JSON.stringify(msAnswers)
+                    };
+
+                    await fetch(form.actionUrl, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: { 
+                            'Content-Type': 'application/json' 
+                        },
+                        body: JSON.stringify(msPayload)
+                    });
+
+                } else {
+                    // GOOGLE FORMS SUBMISSION
+                    const formData = new URLSearchParams();
+                    if (form.fbzx) {
+                        formData.append('fbzx', form.fbzx);
+                    }
+                    const sectionBreaks = form.items.filter(i => i.isPageBreak).length;
+                    if (sectionBreaks > 0) {
+                        const history = Array.from({ length: sectionBreaks + 1 }, (_, k) => k).join(',');
+                        formData.append('pageHistory', history);
+                    }
+                    formData.append('draftResponse', '[]');
+
+                    form.items.forEach(item => {
+                        if (item.type === QuestionType.MULTIPLE_CHOICE_GRID || item.type === QuestionType.CHECKBOX_GRID) {
+                            const gridData = generateGridResponse(item);
+                            Object.entries(gridData).forEach(([rowId, val]) => {
+                                formData.append(`entry.${rowId}`, val);
+                            });
+                        } else {
+                            const scheduledValue = batchSchedule[item.id]?.[i];
+                            if (scheduledValue !== undefined && scheduledValue !== "N/A" && item.submissionId) {
+                                if (Array.isArray(scheduledValue)) {
+                                    scheduledValue.forEach(val => formData.append(`entry.${item.submissionId}`, val));
+                                } else {
+                                    formData.append(`entry.${item.submissionId}`, scheduledValue);
+                                }
+                            }
+                        }
+                    });
+
+                    await fetch(form.actionUrl, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: formData
+                    });
+                }
                 await new Promise(resolve => setTimeout(resolve, 500));
                 addLog('success', `Submission #${i + 1} finalized successfully`);
                 successCount++;
