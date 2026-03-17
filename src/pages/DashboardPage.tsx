@@ -134,14 +134,12 @@ const AutomateForm: React.FC = () => {
                 setParsedForm({ ...formStructure, formSource: 'google' });
             } else {
                 setStatus({ status: 'fetching_html', message: 'Fetching Microsoft Form content...' });
-                // We import this dynamically because we didn't add fetchMicrosoftFormData to imports above (only fetchUrlContent is there)
                 const { fetchMicrosoftFormData } = await import('../services/proxyService');
-                const { formMeta, questions } = await fetchMicrosoftFormData(url);
+                const { formMeta, questions, resolvedFormId } = await fetchMicrosoftFormData(url);
                 setStatus({ status: 'analyzing', message: 'Parsing Microsoft Form structure...' });
                 await new Promise(resolve => setTimeout(resolve, 100));
-                const { extractMsFormId } = await import('../services/microsoftFormsParser');
-                const formId = extractMsFormId(url) || 'unknown';
-                const formStructure = await parseMicrosoftFormData(formMeta, questions, formId, url);
+                const { parseMicrosoftFormData } = await import('../services/microsoftFormsParser');
+                const formStructure = await parseMicrosoftFormData(formMeta, questions, resolvedFormId, url);
                 setParsedForm(formStructure);
             }
             setStatus({ status: 'success' });

@@ -74,11 +74,9 @@ export const fetchUrlContent = async (url: string): Promise<string> => {
  * Fetches Microsoft Form metadata and questions via CORS proxy.
  * Returns [formMeta, questionsArray].
  */
-export const fetchMicrosoftFormData = async (url: string): Promise<{ formMeta: any; questions: any[] }> => {
-  const formId = extractMsFormId(url);
-  if (!formId) {
-    throw new Error("Could not extract a valid Microsoft Forms ID from the URL. Please check the URL and try again.");
-  }
+export const fetchMicrosoftFormData = async (url: string): Promise<{ formMeta: any; questions: any[], resolvedFormId: string }> => {
+  let targetUrl = url.trim();
+  if (!targetUrl.toLowerCase().startsWith('http')) targetUrl = 'https://' + targetUrl;
 
   const fetchWithTimeout = async (resource: string, options: RequestInit = {}) => {
     const { timeout = 15000 } = options as any;
@@ -94,6 +92,47 @@ export const fetchMicrosoftFormData = async (url: string): Promise<{ formMeta: a
     }
   };
 
+  // 1. If it's a short URL (/r/), we must follow the redirect first to get the real ID.
+  // We use codetabs proxy because it natively follows redirects and we can inspect the final URL or content.
+  let resolvedFormId = extractMsFormId(targetUrl);
+  
+  if (targetUrl.includes('/r/')) {
+    try {
+      // Codetabs proxy allows us to see where a request ultimately lands.
+      const redirectCheckUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetUrl)}`;
+      const res = await fetchWithTimeout(redirectCheckUrl);
+      // It might give us HTML with the real URL in config, or we check if we can parse it differently,
+      // but usually the proxy follows to /Pages/ResponsePage.aspx
+      
+      // Let's try parsing the actual page source it returns. MS Forms embeds the ID in window.FormData = {"id": "..."}
+      const htmlText = await res.text();
+      const match = htmlText.match(/"?id"?\s*:\s*"([a-zA-Z0-9_-]{20,})"/i);
+      if (match && match[1]) {
+           resolvedFormId = match[1];
+      }
+    } catch (e) {
+      console.warn("Failed attempting to resolve short MS Form link.", e);
+    }
+  }
+
+  if (!resolvedFormId || resolvedFormId.length < 15 && targetUrl.includes('/r/')) {
+      // If we couldn't parse it out from HTML block, try the allorigins redirect bypass
+       try {
+           const redirectCheckUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
+           const res = await fetchWithTimeout(redirectCheckUrl);
+           const json = await res.json();
+           if (json.url) {
+                resolvedFormId = extractMsFormId(json.url) || resolvedFormId;
+           }
+       } catch (e) {
+           console.warn("Failed second attempt to resolve short MS Form link.", e);
+       }
+  }
+
+  if (!resolvedFormId) {
+    throw new Error("Could not extract a valid Microsoft Forms ID from the URL. Please check the URL and try again.");
+  }
+
   const proxyGenerators = [
     (u: string) => `https://api.allorigins.win/get?url=${encodeURIComponent(u)}`,
     (u: string) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
@@ -101,8 +140,8 @@ export const fetchMicrosoftFormData = async (url: string): Promise<{ formMeta: a
   ];
 
   // Internal MS Forms API endpoints (work for public forms)
-  const metaUrl = `https://forms.office.com/formapi/api/${encodeURIComponent(formId)}`;
-  const questionsUrl = `https://forms.office.com/formapi/api/${encodeURIComponent(formId)}/questions`;
+  const metaUrl = `https://forms.office.com/formapi/api/${encodeURIComponent(resolvedFormId as string)}`;
+  const questionsUrl = `https://forms.office.com/formapi/api/${encodeURIComponent(resolvedFormId as string)}/questions`;
 
   let formMeta: any = null;
   let questions: any[] = [];
@@ -173,5 +212,5 @@ export const fetchMicrosoftFormData = async (url: string): Promise<{ formMeta: a
     formMeta = { title: 'Microsoft Form', description: '' };
   }
 
-  return { formMeta, questions };
+  return { formMeta, questions, resolvedFormId };
 };
