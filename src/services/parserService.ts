@@ -161,7 +161,7 @@ export const parseFormHTML = async (htmlContent: string): Promise<ParsedForm> =>
             rows,
             columns
         };
-    }).filter((i): i is FormItem => i !== null);
+    }).filter((i: FormItem | null): i is FormItem => i !== null);
 
     return { 
         title, 
