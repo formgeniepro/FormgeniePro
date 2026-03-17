@@ -40,12 +40,12 @@ const mapMsQuestionType = (msType: string, questionInfo: any): QuestionType => {
 
   if (t.includes('choice')) {
     // Check if it allows multiple values (checkboxes vs radio)
-    if (questionInfo?.ChoiceType === 2) return QuestionType.CHECKBOXES;
+    if (questionInfo?.ChoiceType === 2 || questionInfo?.allowMultipleValues) return QuestionType.CHECKBOXES;
     return QuestionType.MULTIPLE_CHOICE;
   }
   if (t.includes('textfield') || t.includes('text') || t.includes('open')) {
     // Check if it's a long answer (paragraph) via questionInfo
-    if (questionInfo?.IsLongAnswer || questionInfo?.IsMultiLine) return QuestionType.PARAGRAPH;
+    if (questionInfo?.IsLongAnswer || questionInfo?.IsMultiLine || questionInfo?.isMultiLine) return QuestionType.PARAGRAPH;
     return QuestionType.SHORT_ANSWER;
   }
   if (t.includes('date')) return QuestionType.DATE;
@@ -108,29 +108,34 @@ export const parseMicrosoftFormData = (
     // ── Parse choices from questionInfo.Choices ──
     let options: ChoiceOption[] = [];
     if (
-      [QuestionType.MULTIPLE_CHOICE, QuestionType.CHECKBOXES, QuestionType.DROPDOWN].includes(qType) &&
-      Array.isArray(qInfo.Choices)
+      [QuestionType.MULTIPLE_CHOICE, QuestionType.CHECKBOXES, QuestionType.DROPDOWN].includes(qType)
     ) {
-      options = qInfo.Choices.map((c: any, ci: number) => ({
-        label: c.Description || c.description || c.text || `Option ${ci + 1}`,
-        id: c.Description || c.description || `choice_${ci}`,
-      }));
+      const choices = qInfo.Choices || q.choices || [];
+      if (Array.isArray(choices)) {
+          options = choices.map((c: any, ci: number) => ({
+            label: c.Description || c.description || c.text || `Option ${ci + 1}`,
+            id: c.Description || c.description || c.text || `choice_${ci}`,
+          }));
+      }
     }
 
     // ── Parse Likert / Matrix rows & columns ──
     let rows: { label: string; id?: string }[] = [];
     let columns: { label: string; id?: string }[] = [];
     if (qType === QuestionType.MULTIPLE_CHOICE_GRID) {
-      if (Array.isArray(qInfo.Rows)) {
-        rows = qInfo.Rows.map((r: any, ri: number) => ({
-          label: r.Description || r.text || `Row ${ri + 1}`,
-          id: r.Id?.toString() || `row_${ri}`,
+      const matrixRows = qInfo.Rows || q.rows || [];
+      const matrixColumns = qInfo.Columns || q.columns || [];
+      
+      if (Array.isArray(matrixRows)) {
+        rows = matrixRows.map((r: any, ri: number) => ({
+          label: r.Description || r.description || r.text || `Row ${ri + 1}`,
+          id: r.Id?.toString() || r.id?.toString() || `row_${ri}`,
         }));
       }
-      if (Array.isArray(qInfo.Columns)) {
-        columns = qInfo.Columns.map((c: any, ci: number) => ({
-          label: c.Description || c.text || `Col ${ci + 1}`,
-          id: c.Id?.toString() || `col_${ci}`,
+      if (Array.isArray(matrixColumns)) {
+        columns = matrixColumns.map((c: any, ci: number) => ({
+          label: c.Description || c.description || c.text || `Col ${ci + 1}`,
+          id: c.Id?.toString() || c.id?.toString() || `col_${ci}`,
         }));
       }
     }
@@ -148,9 +153,9 @@ export const parseMicrosoftFormData = (
       submissionId: q.id?.toString() || `ms_q_${itemIndex}`,
       index: itemIndex,
       type: qType,
-      title: q.title || q.formsProRTQuestionTitle || '',
-      description: q.subtitle || q.formsProRTSubtitle || '',
-      required: q.required === true,
+      title: q.title || q.formsProRTQuestionTitle || q.questionText || '',
+      description: q.subtitle || q.formsProRTSubtitle || q.hint || '',
+      required: q.required === true || q.isRequired === true,
       options,
       rows,
       columns,
