@@ -29,7 +29,7 @@ export const extractMsFormId = (url: string): string | null => {
  */
 export const isMicrosoftFormsUrl = (url: string): boolean => {
   const lower = url.toLowerCase();
-  return lower.includes('forms.office.com') || lower.includes('forms.microsoft.com');
+  return lower.includes('forms.office.com') || lower.includes('forms.microsoft.com') || lower.includes('forms.cloud.microsoft');
 };
 
 /**
