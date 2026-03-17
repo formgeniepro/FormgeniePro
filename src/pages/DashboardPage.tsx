@@ -209,52 +209,91 @@ const AutomateForm: React.FC = () => {
                         ))}
                     </div>
 
-                    {/* Input */}
-                    <div>
-                        <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#9e97b0', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>
-                            {inputType === 'google' ? 'Google Form Link' : 'Microsoft Forms Link'}
-                        </label>
-                        <input type="url" value={url} onChange={(e) => setUrl(e.target.value)}
-                            placeholder={inputType === 'google' ? "https://docs.google.com/forms/d/e/..." : "https://forms.office.com/Pages/ResponsePage.aspx?id=..."}
-                            style={{
-                                width: '100%', background: '#fafafa', border: '1px solid #e8e5f0', borderRadius: '10px',
-                                padding: '12px 16px', fontSize: '14px', color: '#1e1b2e', outline: 'none',
-                                boxSizing: 'border-box', transition: 'all 0.2s',
-                            }} />
-                        <p style={{ fontSize: '11px', color: '#9e97b0', marginTop: '8px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                            <Zap style={{ width: 12, height: 12, color: '#f59e0b' }} /> {inputType === 'google' ? 'Direct URL parsing via CORS Proxy' : 'Make sure Microsoft Form permissions allow "Anyone can respond"'}
-                        </p>
-                    </div>
+                    <AnimatePresence mode="wait">
+                        {inputType === 'google' ? (
+                            <motion.div
+                                key="google-input"
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -10 }}
+                                transition={{ duration: 0.2 }}
+                            >
+                                {/* Input */}
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: '#9e97b0', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '6px' }}>
+                                        Google Form Link
+                                    </label>
+                                    <input type="url" value={url} onChange={(e) => setUrl(e.target.value)}
+                                        placeholder="https://docs.google.com/forms/d/e/..."
+                                        style={{
+                                            width: '100%', background: '#fafafa', border: '1px solid #e8e5f0', borderRadius: '10px',
+                                            padding: '12px 16px', fontSize: '14px', color: '#1e1b2e', outline: 'none',
+                                            boxSizing: 'border-box', transition: 'all 0.2s',
+                                        }} />
+                                    <p style={{ fontSize: '11px', color: '#9e97b0', marginTop: '8px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                        <Zap style={{ width: 12, height: 12, color: '#f59e0b' }} /> Direct URL parsing via CORS Proxy
+                                    </p>
+                                </div>
 
-                    {/* Error */}
-                    {status.status === 'error' && (
-                        <div style={{
-                            display: 'flex', alignItems: 'flex-start', gap: '10px', marginTop: '16px',
-                            background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '10px',
-                            padding: '12px 16px', color: '#991b1b', fontSize: '13px',
-                        }}>
-                            <AlertCircle style={{ width: 16, height: 16, flexShrink: 0, marginTop: '2px' }} />
-                            {status.message}
-                        </div>
-                    )}
+                                {/* Error */}
+                                {status.status === 'error' && (
+                                    <div style={{
+                                        display: 'flex', alignItems: 'flex-start', gap: '10px', marginTop: '16px',
+                                        background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '10px',
+                                        padding: '12px 16px', color: '#991b1b', fontSize: '13px',
+                                    }}>
+                                        <AlertCircle style={{ width: 16, height: 16, flexShrink: 0, marginTop: '2px' }} />
+                                        {status.message}
+                                    </div>
+                                )}
 
-                    {/* Submit */}
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px' }}>
-                        <button onClick={handleImport} disabled={isDisabled}
-                            style={{
-                                display: 'flex', alignItems: 'center', gap: '8px',
-                                padding: '12px 28px', borderRadius: '12px', border: 'none',
-                                background: isDisabled ? '#d1d5db' : 'linear-gradient(135deg, #4285F4, #5a9cf5)',
-                                color: 'white', fontSize: '14px', fontWeight: 600, cursor: isDisabled ? 'not-allowed' : 'pointer',
-                                boxShadow: isDisabled ? 'none' : '0 4px 16px rgba(66,133,244,0.25)',
-                            }}>
-                            {isLoading ? (
-                                <><Spinner size="h-4 w-4" /><span>{status.message}</span></>
-                            ) : (
-                                <><Sparkles style={{ width: 16, height: 16 }} /> Import Form</>
-                            )}
-                        </button>
-                    </div>
+                                {/* Submit */}
+                                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px' }}>
+                                    <button onClick={handleImport} disabled={isDisabled}
+                                        style={{
+                                            display: 'flex', alignItems: 'center', gap: '8px',
+                                            padding: '12px 28px', borderRadius: '12px', border: 'none',
+                                            background: isDisabled ? '#d1d5db' : 'linear-gradient(135deg, #4285F4, #5a9cf5)',
+                                            color: 'white', fontSize: '14px', fontWeight: 600, cursor: isDisabled ? 'not-allowed' : 'pointer',
+                                            boxShadow: isDisabled ? 'none' : '0 4px 16px rgba(66,133,244,0.25)',
+                                        }}>
+                                        {isLoading ? (
+                                            <><Spinner size="h-4 w-4" /><span>{status.message}</span></>
+                                        ) : (
+                                            <><Sparkles style={{ width: 16, height: 16 }} /> Import Form</>
+                                        )}
+                                    </button>
+                                </div>
+                            </motion.div>
+                        ) : (
+                            <motion.div
+                                key="microsoft-developing"
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -10 }}
+                                transition={{ duration: 0.2 }}
+                                style={{
+                                    textAlign: 'center', padding: '40px 20px', background: '#f8f7fc',
+                                    borderRadius: '16px', border: '1px dashed #d1d5db',
+                                }}
+                            >
+                                <div style={{
+                                    width: '56px', height: '56px', borderRadius: '50%', background: '#fff',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    margin: '0 auto 16px', boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+                                    color: '#0078D4',
+                                }}>
+                                    <Activity style={{ width: 24, height: 24 }} />
+                                </div>
+                                <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#1e1b2e', margin: '0 0 8px' }}>
+                                    Under developing stage
+                                </h3>
+                                <p style={{ fontSize: '14px', color: '#9e97b0', margin: 0, maxWidth: '280px', marginLeft: 'auto', marginRight: 'auto' }}>
+                                    Microsoft Forms automation is currently in development and will be available soon.
+                                </p>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
                 </div>
             </div>
 
