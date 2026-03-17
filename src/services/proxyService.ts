@@ -134,9 +134,9 @@ export const fetchMicrosoftFormData = async (url: string): Promise<{ formMeta: a
   }
 
   const proxyGenerators = [
-    (u: string) => `https://api.allorigins.win/get?url=${encodeURIComponent(u)}`,
-    (u: string) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`,
-    (u: string) => `https://corsproxy.io/?${encodeURIComponent(u)}`,
+    (u: string) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`
+    // Removed corsproxy.io because it responds with 403 for Microsoft Forms API
+    // Removed allorigins.win because it wraps JSON improperly and fails to parse Microsoft payloads in the browser
   ];
 
   // Internal MS Forms API endpoints (work for public forms)
