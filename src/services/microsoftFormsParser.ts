@@ -70,8 +70,8 @@ export const parseMicrosoftFormData = (
   const title = formMeta?.title || formMeta?.name || 'Untitled Form';
   const description = formMeta?.description || '';
 
-  // Build the submit action URL
-  const actionUrl = `https://forms.office.com/formapi/api/${encodeURIComponent(formId)}/responses`;
+  // Use the submit URL extracted from the form page config, falling back to the legacy pattern
+  const actionUrl = formMeta?.submitUrl || `https://forms.office.com/formapi/api/${encodeURIComponent(formId)}/responses`;
 
   let itemIndex = 0;
   const items: FormItem[] = [];

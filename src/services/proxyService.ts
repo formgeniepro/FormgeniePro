@@ -71,15 +71,20 @@ export const fetchUrlContent = async (url: string): Promise<string> => {
 };
 
 /**
- * Fetches Microsoft Form metadata and questions via CORS proxy.
- * Returns [formMeta, questionsArray].
+ * Fetches Microsoft Form data by:
+ * 1. Loading the form's HTML page via CORS proxy
+ * 2. Extracting the tenant-specific prefetchFormUrl from the embedded JS config
+ * 3. Fetching the actual form data (title + questions) from that API URL
+ *
+ * This works because MS Forms embeds the exact API URL in the page HTML,
+ * including tenant ID and user ID, which are required for the API to respond.
  */
 export const fetchMicrosoftFormData = async (url: string): Promise<{ formMeta: any; questions: any[], resolvedFormId: string }> => {
   let targetUrl = url.trim();
   if (!targetUrl.toLowerCase().startsWith('http')) targetUrl = 'https://' + targetUrl;
 
   const fetchWithTimeout = async (resource: string, options: RequestInit = {}) => {
-    const { timeout = 15000 } = options as any;
+    const { timeout = 20000 } = options as any;
     const controller = new AbortController();
     const id = setTimeout(() => controller.abort(), timeout);
     try {
@@ -92,125 +97,104 @@ export const fetchMicrosoftFormData = async (url: string): Promise<{ formMeta: a
     }
   };
 
-  // 1. If it's a short URL (/r/), we must follow the redirect first to get the real ID.
-  // We use codetabs proxy because it natively follows redirects and we can inspect the final URL or content.
-  let resolvedFormId = extractMsFormId(targetUrl);
+  const proxyUrl = (u: string) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`;
+
+  // ── Step 1: Fetch the form HTML page ──
+  let html = '';
+  try {
+    const res = await fetchWithTimeout(proxyUrl(targetUrl));
+    if (!res.ok) throw new Error(`Proxy returned ${res.status}`);
+    html = await res.text();
+  } catch (e) {
+    console.warn('Primary proxy failed for MS Forms HTML, trying allorigins...', e);
+    try {
+      const res = await fetchWithTimeout(`https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`);
+      if (!res.ok) throw new Error(`AllOrigins returned ${res.status}`);
+      html = await res.text();
+    } catch (e2) {
+      throw new Error(
+        "Unable to fetch the Microsoft Form page. Please check the URL is correct and the form is public."
+      );
+    }
+  }
+
+  if (!html || html.length < 200) {
+    throw new Error("Received empty or invalid response from the Microsoft Form URL.");
+  }
+
+  // ── Step 2: Extract the prefetchFormUrl from page config ──
+  // MS Forms embeds a JSON config in the HTML with the exact API endpoint to fetch form data.
+  // The key is "prefetchFormUrl" which contains a tenant-specific OData URL with $expand=questions($expand=choices)
+  const prefetchMatch = html.match(/"prefetchFormUrl"\s*:\s*"([^"]+)"/i);
   
-  if (targetUrl.includes('/r/')) {
-    try {
-      // Codetabs proxy allows us to see where a request ultimately lands.
-      const redirectCheckUrl = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetUrl)}`;
-      const res = await fetchWithTimeout(redirectCheckUrl);
-      // It might give us HTML with the real URL in config, or we check if we can parse it differently,
-      // but usually the proxy follows to /Pages/ResponsePage.aspx
-      
-      // Let's try parsing the actual page source it returns. MS Forms embeds the ID in window.FormData = {"id": "..."}
-      const htmlText = await res.text();
-      const match = htmlText.match(/"?id"?\s*:\s*"([a-zA-Z0-9_-]{20,})"/i);
-      if (match && match[1]) {
-           resolvedFormId = match[1];
-      }
-    } catch (e) {
-      console.warn("Failed attempting to resolve short MS Form link.", e);
-    }
+  let prefetchUrl = '';
+  if (prefetchMatch && prefetchMatch[1]) {
+    // Unescape unicode quotes: \u0027 → '
+    prefetchUrl = prefetchMatch[1]
+      .replace(/\\u0027/g, "'")
+      .replace(/\\u0026/g, "&")
+      .replace(/\\u003c/g, "<")
+      .replace(/\\u003e/g, ">");
   }
 
-  if (!resolvedFormId || resolvedFormId.length < 15 && targetUrl.includes('/r/')) {
-      // If we couldn't parse it out from HTML block, try the allorigins redirect bypass
-       try {
-           const redirectCheckUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
-           const res = await fetchWithTimeout(redirectCheckUrl);
-           const json = await res.json();
-           if (json.url) {
-                resolvedFormId = extractMsFormId(json.url) || resolvedFormId;
-           }
-       } catch (e) {
-           console.warn("Failed second attempt to resolve short MS Form link.", e);
-       }
-  }
-
-  if (!resolvedFormId) {
-    throw new Error("Could not extract a valid Microsoft Forms ID from the URL. Please check the URL and try again.");
-  }
-
-  const proxyGenerators = [
-    (u: string) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(u)}`
-    // Removed corsproxy.io because it responds with 403 for Microsoft Forms API
-    // Removed allorigins.win because it wraps JSON improperly and fails to parse Microsoft payloads in the browser
-  ];
-
-  // Internal MS Forms API endpoints (work for public forms)
-  const metaUrl = `https://forms.office.com/formapi/api/${encodeURIComponent(resolvedFormId as string)}`;
-  const questionsUrl = `https://forms.office.com/formapi/api/${encodeURIComponent(resolvedFormId as string)}/questions`;
-
-  let formMeta: any = null;
-  let questions: any[] = [];
-
-  // Try to fetch form metadata
-  for (const generateProxyUrl of proxyGenerators) {
-    try {
-      const proxyUrl = generateProxyUrl(metaUrl);
-      const response = await fetchWithTimeout(proxyUrl);
-      if (!response.ok) continue;
-
-      const text = await response.text();
-      let parsed: any;
-      // AllOrigins wraps in {contents, status}
-      try {
-        const wrapper = JSON.parse(text);
-        parsed = wrapper.contents ? JSON.parse(wrapper.contents) : wrapper;
-      } catch {
-        parsed = JSON.parse(text);
-      }
-
-      if (parsed && (parsed.title !== undefined || parsed.id !== undefined)) {
-        formMeta = parsed;
-        break;
-      }
-    } catch (e) {
-      console.warn('MS Forms meta fetch failed with proxy, trying next...', e);
-    }
-  }
-
-  // Try to fetch questions
-  for (const generateProxyUrl of proxyGenerators) {
-    try {
-      const proxyUrl = generateProxyUrl(questionsUrl);
-      const response = await fetchWithTimeout(proxyUrl);
-      if (!response.ok) continue;
-
-      const text = await response.text();
-      let parsed: any;
-      try {
-        const wrapper = JSON.parse(text);
-        parsed = wrapper.contents ? JSON.parse(wrapper.contents) : wrapper;
-      } catch {
-        parsed = JSON.parse(text);
-      }
-
-      // Questions endpoint returns an array or {value: [...]}
-      if (Array.isArray(parsed)) {
-        questions = parsed;
-        break;
-      } else if (parsed && Array.isArray(parsed.value)) {
-        questions = parsed.value;
-        break;
-      }
-    } catch (e) {
-      console.warn('MS Forms questions fetch failed with proxy, trying next...', e);
-    }
-  }
-
-  if (!formMeta && questions.length === 0) {
+  if (!prefetchUrl) {
     throw new Error(
-      "Unable to fetch the Microsoft Form. Please ensure the form is set to 'Anyone can respond' (public) and the URL is correct. If the issue persists, the form may not be accessible without a Microsoft account."
+      "Could not find the form data endpoint in the page HTML. The form may require authentication or the URL may be incorrect."
     );
   }
 
-  // If meta failed but questions succeeded, create minimal meta from questions data
-  if (!formMeta) {
-    formMeta = { title: 'Microsoft Form', description: '' };
+  // Extract resolvedFormId from the prefetchUrl or from the original URL
+  let resolvedFormId = extractMsFormId(targetUrl) || 'unknown';
+  // Try to get a better ID from the prefetch URL (the OData key inside runtimeForms('...'))
+  const oDataIdMatch = prefetchUrl.match(/runtimeForms\('([^']+)'\)/i);
+  if (oDataIdMatch && oDataIdMatch[1]) {
+    resolvedFormId = oDataIdMatch[1];
   }
+
+  // ── Step 3: Fetch the actual form data from the prefetch URL ──
+  // This single endpoint returns BOTH form metadata (title, description) AND questions with choices
+  let formData: any = null;
+  try {
+    const res = await fetchWithTimeout(proxyUrl(prefetchUrl));
+    if (!res.ok) throw new Error(`API proxy returned ${res.status}`);
+    const text = await res.text();
+    formData = JSON.parse(text);
+  } catch (e) {
+    console.warn('Primary proxy failed for MS Forms API, trying direct...', e);
+    // Try fetching directly (works from Node/server contexts)
+    try {
+      const res = await fetchWithTimeout(prefetchUrl);
+      if (!res.ok) throw new Error(`Direct API returned ${res.status}`);
+      const text = await res.text();
+      formData = JSON.parse(text);
+    } catch (e2) {
+      throw new Error(
+        "Unable to fetch the Microsoft Form data. Please ensure the form is set to 'Anyone can respond' (public). If the issue persists, the form may not be accessible without a Microsoft account."
+      );
+    }
+  }
+
+  // ── Step 4: Extract metadata and questions from the combined response ──
+  const formMeta: { title: string; description: string; id: string; submitUrl?: string } = {
+    title: formData.title || formData.formsProRTTitle || 'Untitled Form',
+    description: formData.description || formData.formsProRTDescription || '',
+    id: formData.id || resolvedFormId,
+  };
+
+  const questions = Array.isArray(formData.questions) ? formData.questions : [];
+
+  if (!formMeta.title && questions.length === 0) {
+    throw new Error(
+      "The form data was fetched but appears to be empty. Please verify the form URL."
+    );
+  }
+
+  // ── Step 5: Build the submission URL from the prefetch URL pattern ──
+  // Replace runtimeForms(...)?$expand=... with responses
+  // e.g. .../light/runtimeForms('ID')?$expand=... → .../light/runtimeForms('ID')/responses  
+  // We store this in formMeta so the parser can use it for actionUrl
+  const submitUrlBase = prefetchUrl.replace(/\?\$expand.*$/, '');
+  formMeta.submitUrl = submitUrlBase.replace(/runtimeForms\('[^']+'\)/, `runtimeForms('${resolvedFormId}')/responses`);
 
   return { formMeta, questions, resolvedFormId };
 };
