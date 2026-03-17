@@ -365,8 +365,17 @@ export const WeightedAutomation: React.FC<WeightedAutomationProps> = ({ form, on
     const activeNameId = Object.entries(specialModes).find(([_, mode]) => mode === 'NAME')?.[0];
 
     const renderItem = (item: FormItem, idx: number) => {
-        if ([QuestionType.MULTIPLE_CHOICE, QuestionType.DROPDOWN, QuestionType.CHECKBOXES, QuestionType.LINEAR_SCALE].includes(item.type)) {
+        if ([
+            QuestionType.MULTIPLE_CHOICE, 
+            QuestionType.DROPDOWN, 
+            QuestionType.CHECKBOXES, 
+            QuestionType.LINEAR_SCALE,
+            QuestionType.MULTIPLE_CHOICE_GRID,
+            QuestionType.CHECKBOX_GRID
+        ].includes(item.type)) {
             const canShowGender = !activeGenderId || activeGenderId === item.id;
+            const isGrid = item.type === QuestionType.MULTIPLE_CHOICE_GRID || item.type === QuestionType.CHECKBOX_GRID;
+            
             return (
                 <motion.div key={item.id}
                     initial={{ opacity: 0, y: 16 }}
@@ -378,7 +387,7 @@ export const WeightedAutomation: React.FC<WeightedAutomationProps> = ({ form, on
                         onWeightChange={(newW) => setWeights(prev => ({ ...prev, [item.id]: newW }))}
                         specialMode={specialModes[item.id] === 'GENDER' ? 'GENDER' : undefined}
                         onToggleSpecialMode={(mode) => setSpecialModes(prev => ({ ...prev, [item.id]: mode }))}
-                        showGenderToggle={canShowGender}
+                        showGenderToggle={canShowGender && !isGrid}
                     />
                 </motion.div>
             );
@@ -392,32 +401,6 @@ export const WeightedAutomation: React.FC<WeightedAutomationProps> = ({ form, on
                     <div style={{ height: '3px', width: '56px', margin: '0 auto 12px', borderRadius: '9999px', background: 'linear-gradient(to right, #4285F4, #5a9cf5)', opacity: 0.5 }}></div>
                     <h2 style={{ fontSize: '18px', fontWeight: 600, color: '#1f2937' }}>{item.title}</h2>
                     {item.description && <p style={{ fontSize: '14px', color: '#9ca3af', marginTop: '4px' }}>{item.description}</p>}
-                </motion.div>
-            );
-        }
-
-        if (item.type === QuestionType.MULTIPLE_CHOICE_GRID || item.type === QuestionType.CHECKBOX_GRID) {
-            const isLimited = gridConfigs[item.id] || false;
-            return (
-                <motion.div key={item.id} className="card" style={{ padding: '1.5rem', marginBottom: '1rem' }}
-                    initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.4, delay: 0.04 * idx, ease: [0.22, 1, 0.36, 1] }}>
-                    <h4 style={{ fontSize: '15px', color: '#1f2937', fontWeight: 500, marginBottom: '1rem' }}>{item.title}</h4>
-                    <div style={{ background: '#f9fafb', padding: '1rem', borderRadius: '12px', border: '1px solid #f3f4f6', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', alignItems: 'center', fontSize: '14px', gap: '0.5rem' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', color: '#6b7280' }}>
-                            <Shuffle style={{ width: 16, height: 16, marginRight: '8px', color: '#4285F4' }} />
-                            {isLimited ? "Shuffle (Unique Column)" : "Random Selection"}
-                        </div>
-                        {item.type === QuestionType.MULTIPLE_CHOICE_GRID && (
-                            <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', userSelect: 'none' }}>
-                                <input type="checkbox" checked={isLimited}
-                                    onChange={(e) => setGridConfigs(prev => ({ ...prev, [item.id]: e.target.checked }))}
-                                    style={{ width: '16px', height: '16px', borderRadius: '4px', marginRight: '8px' }}
-                                />
-                                <span style={{ color: '#6b7280', fontSize: '11px', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.05em' }}>Limit 1 per col</span>
-                            </label>
-                        )}
-                    </div>
                 </motion.div>
             );
         }

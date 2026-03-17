@@ -115,6 +115,14 @@ export const parseMicrosoftFormData = (
     const msType: string = q.type || '';
     const qType = mapMsQuestionType(msType, qInfo);
 
+    console.log(`[MS-Parser] Processing Q: "${q.title}" | Type: ${msType} -> ${qType}`);
+
+    // Skip Matrix rows if they appear as separate items in the array
+    if (q.parentId || q.parentQuestionId) {
+      console.log(`[MS-Parser] Skipping child question (likely a matrix row): "${q.title}"`);
+      continue;
+    }
+
     if (qType === QuestionType.FILE_UPLOAD) {
       itemIndex++;
       continue;
