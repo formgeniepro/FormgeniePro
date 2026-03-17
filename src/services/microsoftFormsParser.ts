@@ -38,20 +38,22 @@ export const isMicrosoftFormsUrl = (url: string): boolean => {
 const mapMsQuestionType = (msType: string, questionInfo: any): QuestionType => {
   const t = (msType || '').toLowerCase();
 
+  // Check for matrix/likert first even in qInfo as some "Choice" types are grids
+  if (t.includes('matrix') || t.includes('likert') || (questionInfo?.Rows && questionInfo?.Columns)) {
+    return QuestionType.MULTIPLE_CHOICE_GRID;
+  }
+
   if (t.includes('choice')) {
-    // Check if it allows multiple values (checkboxes vs radio)
     if (questionInfo?.ChoiceType === 2 || questionInfo?.allowMultipleValues) return QuestionType.CHECKBOXES;
     return QuestionType.MULTIPLE_CHOICE;
   }
   if (t.includes('textfield') || t.includes('text') || t.includes('open')) {
-    // Check if it's a long answer (paragraph) via questionInfo
     if (questionInfo?.IsLongAnswer || questionInfo?.IsMultiLine || questionInfo?.isMultiLine) return QuestionType.PARAGRAPH;
     return QuestionType.SHORT_ANSWER;
   }
   if (t.includes('date')) return QuestionType.DATE;
   if (t.includes('rating') || t.includes('nps')) return QuestionType.LINEAR_SCALE;
   if (t.includes('ranking')) return QuestionType.MULTIPLE_CHOICE;
-  if (t.includes('matrix') || t.includes('likert')) return QuestionType.MULTIPLE_CHOICE_GRID;
   if (t.includes('file') || t.includes('upload')) return QuestionType.FILE_UPLOAD;
   if (t.includes('dropdown') || t.includes('combobox')) return QuestionType.DROPDOWN;
   if (t.includes('section') || t.includes('header')) return QuestionType.SECTION_HEADER;
@@ -59,23 +61,39 @@ const mapMsQuestionType = (msType: string, questionInfo: any): QuestionType => {
   // Fallback: if it has choices, treat as MC
   if (questionInfo?.Choices && questionInfo.Choices.length > 0) return QuestionType.MULTIPLE_CHOICE;
 
-  return QuestionType.SHORT_ANSWER; // Default to short answer instead of UNKNOWN
+  return QuestionType.SHORT_ANSWER;
+};
+
+/**
+ * Robustly extracts a label from a Microsoft Forms choice/row/column object.
+ */
+const extractMsLabel = (obj: any, fallback: string): string => {
+  if (!obj) return fallback;
+  return (
+    obj.Description || 
+    obj.description || 
+    obj.DisplayText || 
+    obj.displayText || 
+    obj.Text || 
+    obj.text || 
+    obj.FormsProDisplayRTText ||
+    fallback
+  );
 };
 
 /**
  * Parses the questionInfo JSON string from a question.
- * questionInfo contains the actual choices, scale info, etc.
  */
 const parseQuestionInfo = (raw: any): any => {
   if (!raw) return {};
   if (typeof raw === 'string') {
     try { return JSON.parse(raw); } catch { return {}; }
   }
-  return raw; // Already an object
+  return raw;
 };
 
 /**
- * Parses Microsoft Forms API JSON (form + questions combined) into ParsedForm.
+ * Parses Microsoft Forms API JSON into ParsedForm.
  */
 export const parseMicrosoftFormData = (
   formMeta: any,
@@ -83,16 +101,13 @@ export const parseMicrosoftFormData = (
   formId: string,
   originalUrl: string
 ): ParsedForm => {
+  // ... existing code for title, actionUrl and sortedQuestions ...
   const title = formMeta?.title || formMeta?.name || 'Untitled Form';
   const description = formMeta?.description || '';
-
-  // Use the submit URL extracted from the form page config, falling back to the legacy pattern
   const actionUrl = formMeta?.submitUrl || `https://forms.office.com/formapi/api/${encodeURIComponent(formId)}/responses`;
 
   let itemIndex = 0;
   const items: FormItem[] = [];
-
-  // Sort questions by their order property to match the original form design
   const sortedQuestions = [...(questionsData || [])].sort((a, b) => (a.order || 0) - (b.order || 0));
 
   for (const q of sortedQuestions) {
@@ -102,42 +117,34 @@ export const parseMicrosoftFormData = (
 
     if (qType === QuestionType.FILE_UPLOAD) {
       itemIndex++;
-      continue; // Skip file uploads
+      continue;
     }
 
-    // ── Parse choices from questionInfo.Choices ──
+    // ── Parse choices ──
     let options: ChoiceOption[] = [];
-    if (
-      [QuestionType.MULTIPLE_CHOICE, QuestionType.CHECKBOXES, QuestionType.DROPDOWN].includes(qType)
-    ) {
-      const choices = qInfo.Choices || q.choices || [];
-      if (Array.isArray(choices)) {
-          options = choices.map((c: any, ci: number) => ({
-            label: c.Description || c.description || c.text || `Option ${ci + 1}`,
-            id: c.Description || c.description || c.text || `choice_${ci}`,
-          }));
-      }
+    if ([QuestionType.MULTIPLE_CHOICE, QuestionType.CHECKBOXES, QuestionType.DROPDOWN].includes(qType)) {
+      const choices = (qInfo.Choices && qInfo.Choices.length > 0) ? qInfo.Choices : (Array.isArray(q.choices) && q.choices.length > 0 ? q.choices : []);
+      options = choices.map((c: any, ci: number) => ({
+        label: extractMsLabel(c, `Option ${ci + 1}`),
+        id: extractMsLabel(c, `choice_${ci}`),
+      }));
     }
 
     // ── Parse Likert / Matrix rows & columns ──
     let rows: { label: string; id?: string }[] = [];
     let columns: { label: string; id?: string }[] = [];
     if (qType === QuestionType.MULTIPLE_CHOICE_GRID) {
-      const matrixRows = qInfo.Rows || q.rows || [];
-      const matrixColumns = qInfo.Columns || q.columns || [];
+      const matrixRows = (qInfo.Rows && qInfo.Rows.length > 0) ? qInfo.Rows : (Array.isArray(q.rows) ? q.rows : []);
+      const matrixColumns = (qInfo.Columns && qInfo.Columns.length > 0) ? qInfo.Columns : (Array.isArray(q.columns) ? q.columns : []);
       
-      if (Array.isArray(matrixRows)) {
-        rows = matrixRows.map((r: any, ri: number) => ({
-          label: r.Description || r.description || r.text || `Row ${ri + 1}`,
-          id: r.Id?.toString() || r.id?.toString() || `row_${ri}`,
-        }));
-      }
-      if (Array.isArray(matrixColumns)) {
-        columns = matrixColumns.map((c: any, ci: number) => ({
-          label: c.Description || c.description || c.text || `Col ${ci + 1}`,
-          id: c.Id?.toString() || c.id?.toString() || `col_${ci}`,
-        }));
-      }
+      rows = matrixRows.map((r: any, ri: number) => ({
+        label: extractMsLabel(r, `Row ${ri + 1}`),
+        id: r.Id?.toString() || r.id?.toString() || extractMsLabel(r, `row_${ri}`),
+      }));
+      columns = matrixColumns.map((c: any, ci: number) => ({
+        label: extractMsLabel(c, `Option ${ci + 1}`),
+        id: c.Id?.toString() || c.id?.toString() || extractMsLabel(c, `col_${ci}`),
+      }));
     }
 
     // ── Linear scale (NPS / rating) ──
