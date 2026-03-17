@@ -92,7 +92,10 @@ export const parseMicrosoftFormData = (
   let itemIndex = 0;
   const items: FormItem[] = [];
 
-  for (const q of (questionsData || [])) {
+  // Sort questions by their order property to match the original form design
+  const sortedQuestions = [...(questionsData || [])].sort((a, b) => (a.order || 0) - (b.order || 0));
+
+  for (const q of sortedQuestions) {
     const qInfo = parseQuestionInfo(q.questionInfo);
     const msType: string = q.type || '';
     const qType = mapMsQuestionType(msType, qInfo);
