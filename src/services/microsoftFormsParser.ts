@@ -70,12 +70,12 @@ const mapMsQuestionType = (msType: string, questionInfo: any): QuestionType => {
 const extractMsLabel = (obj: any, fallback: string): string => {
   if (!obj) return fallback;
   return (
-    obj.Description || 
-    obj.description || 
-    obj.DisplayText || 
-    obj.displayText || 
-    obj.Text || 
-    obj.text || 
+    obj.Description ||
+    obj.description ||
+    obj.DisplayText ||
+    obj.displayText ||
+    obj.Text ||
+    obj.text ||
     obj.FormsProDisplayRTText ||
     fallback
   );
@@ -115,14 +115,6 @@ export const parseMicrosoftFormData = (
     const msType: string = q.type || '';
     const qType = mapMsQuestionType(msType, qInfo);
 
-    console.log(`[MS-Parser] Processing Q: "${q.title}" | Type: ${msType} -> ${qType}`);
-
-    // Skip Matrix rows if they appear as separate items in the array
-    if (q.parentId || q.parentQuestionId) {
-      console.log(`[MS-Parser] Skipping child question (likely a matrix row): "${q.title}"`);
-      continue;
-    }
-
     if (qType === QuestionType.FILE_UPLOAD) {
       itemIndex++;
       continue;
@@ -144,7 +136,7 @@ export const parseMicrosoftFormData = (
     if (qType === QuestionType.MULTIPLE_CHOICE_GRID) {
       const matrixRows = (qInfo.Rows && qInfo.Rows.length > 0) ? qInfo.Rows : (Array.isArray(q.rows) ? q.rows : []);
       const matrixColumns = (qInfo.Columns && qInfo.Columns.length > 0) ? qInfo.Columns : (Array.isArray(q.columns) ? q.columns : []);
-      
+
       rows = matrixRows.map((r: any, ri: number) => ({
         label: extractMsLabel(r, `Row ${ri + 1}`),
         id: r.Id?.toString() || r.id?.toString() || extractMsLabel(r, `row_${ri}`),
