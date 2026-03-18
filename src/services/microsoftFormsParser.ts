@@ -113,6 +113,15 @@ export const parseMicrosoftFormData = (
   for (const q of sortedQuestions) {
     const qInfo = parseQuestionInfo(q.questionInfo);
     const msType: string = q.type || '';
+    
+    // Skip Matrix rows/choices (they are parsed internally as part of the parent Matrix item)
+    if (msType.toLowerCase().includes('matrixchoice') || 
+        msType.toLowerCase().includes('matrixrow') || 
+        qInfo.ParentQuestionId || 
+        q.parentId) {
+      continue;
+    }
+
     const qType = mapMsQuestionType(msType, qInfo);
 
     if (qType === QuestionType.FILE_UPLOAD) {
