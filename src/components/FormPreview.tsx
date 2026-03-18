@@ -1,6 +1,7 @@
 import React from 'react';
 import { ParsedForm } from '../types';
 import { WeightedAutomation } from './WeightedAutomation';
+import { MicrosoftFormsAutomation } from './MicrosoftFormsAutomation';
 
 interface FormPreviewProps {
   form: ParsedForm;
@@ -8,7 +9,9 @@ interface FormPreviewProps {
 }
 
 export const FormPreview: React.FC<FormPreviewProps> = ({ form, onBack }) => {
-  // Directly launch the Weighted Automation interface
-  // ignoring single submission or manual loop modes as requested.
+  // Route to the appropriate automation interface based on source
+  if (form.formSource === 'microsoft') {
+    return <MicrosoftFormsAutomation form={form} onBack={onBack} />;
+  }
   return <WeightedAutomation form={form} onBack={onBack} />;
 };

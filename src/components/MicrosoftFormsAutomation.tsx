@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { creditsApi, automationLogsApi } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 
-interface WeightedAutomationProps {
+interface MicrosoftFormsAutomationProps {
     form: ParsedForm;
     onBack: () => void;
 }
@@ -111,7 +111,7 @@ const generateBatchForCheckboxes = (
 
 // --- COMPONENT ---
 
-export const WeightedAutomation: React.FC<WeightedAutomationProps> = ({ form, onBack }) => {
+export const MicrosoftFormsAutomation: React.FC<MicrosoftFormsAutomationProps> = ({ form, onBack }) => {
     const { user, refreshCredits } = useAuth();
     const [weights, setWeights] = useState<Record<string, any>>(() => getInitialWeights(form.items));
     const [gridConfigs, setGridConfigs] = useState<Record<string, boolean>>(() => getInitialGridConfigs(form.items));
@@ -241,44 +241,56 @@ export const WeightedAutomation: React.FC<WeightedAutomationProps> = ({ form, on
             }
             try {
                 if (form.formSource === 'microsoft') {
-                    throw new Error("Microsoft Forms are not supported in this interface.");
-                } else {
-                    // GOOGLE FORMS SUBMISSION
-                    const formData = new URLSearchParams();
-                    if (form.fbzx) {
-                        formData.append('fbzx', form.fbzx);
-                    }
-                    const sectionBreaks = form.items.filter(i => i.isPageBreak).length;
-                    if (sectionBreaks > 0) {
-                        const history = Array.from({ length: sectionBreaks + 1 }, (_, k) => k).join(',');
-                        formData.append('pageHistory', history);
-                    }
-                    formData.append('draftResponse', '[]');
+                    // MICROSOFT FORMS SUBMISSION
+                    const msAnswers: any[] = [];
 
                     form.items.forEach(item => {
+                        if (item.type === QuestionType.SECTION_HEADER) return;
+
                         if (item.type === QuestionType.MULTIPLE_CHOICE_GRID || item.type === QuestionType.CHECKBOX_GRID) {
                             const gridData = generateGridResponse(item);
-                            Object.entries(gridData).forEach(([rowId, val]) => {
-                                formData.append(`entry.${rowId}`, val);
+                            // MS Forms grid format: answers: [{questionId: rowId, answer1: colLabel}]
+                            Object.entries(gridData).forEach(([rowId, colLabel]) => {
+                                msAnswers.push({
+                                    questionId: rowId,
+                                    answer1: colLabel
+                                });
                             });
                         } else {
                             const scheduledValue = batchSchedule[item.id]?.[i];
                             if (scheduledValue !== undefined && scheduledValue !== "N/A" && item.submissionId) {
+                                // Date questions need specific MS Forms valid format (YYYY-MM-DD), but we'll send verbatim for now if any
                                 if (Array.isArray(scheduledValue)) {
-                                    scheduledValue.forEach(val => formData.append(`entry.${item.submissionId}`, val));
+                                    msAnswers.push({
+                                        questionId: item.submissionId,
+                                        answer1: JSON.stringify(scheduledValue) // MS forms accepts array of strings as a JSON string for checkboxes
+                                    });
                                 } else {
-                                    formData.append(`entry.${item.submissionId}`, scheduledValue);
+                                    msAnswers.push({
+                                        questionId: item.submissionId,
+                                        answer1: scheduledValue.toString()
+                                    });
                                 }
                             }
                         }
                     });
 
+                    const submitDate = new Date().toISOString();
+                    const msPayload = {
+                        startDate: submitDate,
+                        submitDate: submitDate,
+                        answers: JSON.stringify(msAnswers)
+                    };
+
                     await fetch(form.actionUrl, {
                         method: 'POST',
                         mode: 'no-cors',
-                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                        body: formData
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(msPayload)
                     });
+
                 }
                 await new Promise(resolve => setTimeout(resolve, 500));
                 addLog('success', `Submission #${i + 1} finalized successfully`);
