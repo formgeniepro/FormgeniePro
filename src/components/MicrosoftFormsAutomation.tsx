@@ -360,7 +360,6 @@ export const MicrosoftFormsAutomation: React.FC<MicrosoftFormsAutomationProps> =
         }
 
         if (item.type === QuestionType.MULTIPLE_CHOICE_GRID || item.type === QuestionType.CHECKBOX_GRID) {
-            const isLimited = gridConfigs[item.id] || false;
             return (
                 <motion.div key={item.id} className="card" style={{ padding: '1.5rem', marginBottom: '1rem' }}
                     initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
@@ -369,17 +368,8 @@ export const MicrosoftFormsAutomation: React.FC<MicrosoftFormsAutomationProps> =
                     <div style={{ background: '#f9fafb', padding: '1rem', borderRadius: '12px', border: '1px solid #f3f4f6', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', alignItems: 'center', fontSize: '14px', gap: '0.5rem' }}>
                         <div style={{ display: 'flex', alignItems: 'center', color: '#6b7280' }}>
                             <Shuffle style={{ width: 16, height: 16, marginRight: '8px', color: '#4285F4' }} />
-                            {isLimited ? "Shuffle (Unique Column)" : "Random Selection"}
+                            Random Selection
                         </div>
-                        {item.type === QuestionType.MULTIPLE_CHOICE_GRID && (
-                            <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', userSelect: 'none' }}>
-                                <input type="checkbox" checked={isLimited}
-                                    onChange={(e) => setGridConfigs(prev => ({ ...prev, [item.id]: e.target.checked }))}
-                                    style={{ width: '16px', height: '16px', borderRadius: '4px', marginRight: '8px' }}
-                                />
-                                <span style={{ color: '#6b7280', fontSize: '11px', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.05em' }}>Limit 1 per col</span>
-                            </label>
-                        )}
                     </div>
                 </motion.div>
             );
