@@ -110,15 +110,30 @@ export const parseMicrosoftFormData = (
   const items: FormItem[] = [];
   const sortedQuestions = [...(questionsData || [])].sort((a, b) => (a.order || 0) - (b.order || 0));
 
+  // Identify all child row IDs from Matrix/Likert questions so we can safely skip them as standalone items
+  const matrixChildIds = new Set<string>();
+  for (const q of sortedQuestions) {
+    const qInfo = parseQuestionInfo(q.questionInfo);
+    if (qInfo?.Rows && Array.isArray(qInfo.Rows)) {
+      qInfo.Rows.forEach((r: any) => {
+        if (r.Id) matrixChildIds.add(r.Id.toString());
+        if (r.id) matrixChildIds.add(r.id.toString());
+      });
+    }
+  }
+
   for (const q of sortedQuestions) {
     const qInfo = parseQuestionInfo(q.questionInfo);
     const msType: string = q.type || '';
     
-    // Skip Matrix rows/choices (they are parsed internally as part of the parent Matrix item)
-    if (msType.toLowerCase().includes('matrixchoice') || 
-        msType.toLowerCase().includes('matrixrow') || 
-        qInfo.ParentQuestionId || 
-        q.parentId) {
+    // Skip this question completely if it's actually a child row handled by a parent Matrix question
+    const qIdStr = q.id?.toString();
+    if (qIdStr && matrixChildIds.has(qIdStr)) {
+      continue;
+    }
+    
+    // Also skip if it explicitly declares itself as a child via parentId without being caught above
+    if (qInfo.ParentQuestionId || q.parentId) {
       continue;
     }
 
