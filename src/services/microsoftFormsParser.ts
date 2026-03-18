@@ -38,8 +38,11 @@ export const isMicrosoftFormsUrl = (url: string): boolean => {
 const mapMsQuestionType = (msType: string, questionInfo: any): QuestionType => {
   const t = (msType || '').toLowerCase();
 
+  const hasRows = questionInfo?.Rows || questionInfo?.rows;
+  const hasCols = questionInfo?.Columns || questionInfo?.columns || questionInfo?.Choices || questionInfo?.choices;
+  
   // Check for matrix/likert first even in qInfo as some "Choice" types are grids
-  if (t.includes('matrix') || t.includes('likert') || (questionInfo?.Rows && questionInfo?.Columns)) {
+  if (t.includes('matrix') || t.includes('likert') || (hasRows && hasCols)) {
     return QuestionType.MULTIPLE_CHOICE_GRID;
   }
 
@@ -114,8 +117,9 @@ export const parseMicrosoftFormData = (
   const matrixChildIds = new Set<string>();
   for (const q of sortedQuestions) {
     const qInfo = parseQuestionInfo(q.questionInfo);
-    if (qInfo?.Rows && Array.isArray(qInfo.Rows)) {
-      qInfo.Rows.forEach((r: any) => {
+    const matrixRows = qInfo?.Rows || qInfo?.rows || q.rows || [];
+    if (Array.isArray(matrixRows)) {
+      matrixRows.forEach((r: any) => {
         if (r.Id) matrixChildIds.add(r.Id.toString());
         if (r.id) matrixChildIds.add(r.id.toString());
       });
@@ -158,8 +162,8 @@ export const parseMicrosoftFormData = (
     let rows: { label: string; id?: string }[] = [];
     let columns: { label: string; id?: string }[] = [];
     if (qType === QuestionType.MULTIPLE_CHOICE_GRID) {
-      const matrixRows = (qInfo.Rows && qInfo.Rows.length > 0) ? qInfo.Rows : (Array.isArray(q.rows) ? q.rows : []);
-      const matrixColumns = (qInfo.Columns && qInfo.Columns.length > 0) ? qInfo.Columns : (Array.isArray(q.columns) ? q.columns : []);
+      const matrixRows = qInfo.Rows || qInfo.rows || q.rows || [];
+      const matrixColumns = qInfo.Columns || qInfo.columns || qInfo.Choices || qInfo.choices || q.columns || q.choices || [];
 
       rows = matrixRows.map((r: any, ri: number) => ({
         label: extractMsLabel(r, `Row ${ri + 1}`),
