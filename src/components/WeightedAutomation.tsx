@@ -160,6 +160,18 @@ export const WeightedAutomation: React.FC<WeightedAutomationProps> = ({ form, on
             if (!form.actionUrl) alert("Action URL missing.");
             return;
         }
+
+        // ── Upfront credit check ──────────────────────────────────────
+        if (user?.role !== 'admin') {
+            const availableCredits = user?.credits ?? 0;
+            if (availableCredits < targetCount) {
+                alert(
+                    `⚠️ Insufficient credits!\n\nYou have ${availableCredits} credit(s) but requested ${targetCount} submission(s).\n\nPlease purchase more credits to continue.`
+                );
+                return;
+            }
+        }
+
         setIsRunning(true);
         stopRequested.current = false;
         setLogs([]);
@@ -176,7 +188,7 @@ export const WeightedAutomation: React.FC<WeightedAutomationProps> = ({ form, on
         }
 
         let successCount = 0;
-        let pendingDeductions = 0;
+        let creditsExhausted = false;
 
         const batchSchedule: Record<string, any[]> = {};
         const genderItem = form.items.find(i => specialModes[i.id] === 'GENDER');
@@ -223,14 +235,16 @@ export const WeightedAutomation: React.FC<WeightedAutomationProps> = ({ form, on
             }
         });
 
-        const performDeduction = async (count: number) => {
-            if (user?.role === 'admin') return;
+        const deductOneCredit = async (): Promise<boolean> => {
+            if (user?.role === 'admin') return true;
             try {
-                const result = await creditsApi.deduct(count);
-                addLog('success', `💳 ${count} credits deducted incrementally. Balance: ${result.credits}`);
+                const result = await creditsApi.deduct(1);
+                addLog('success', `💳 1 credit deducted. Remaining balance: ${result.credits}`);
                 refreshCredits();
+                return true;
             } catch (err: any) {
-                addLog('error', `Incremental credit deduction failed: ${err.error || 'Unknown error'}`);
+                addLog('error', '🚫 Credits exhausted! Please purchase credits to continue.');
+                return false;
             }
         };
 
@@ -239,6 +253,15 @@ export const WeightedAutomation: React.FC<WeightedAutomationProps> = ({ form, on
                 setLogs(prev => [{ id: i, status: 'stopped', message: "Stopped by user", time: new Date().toLocaleTimeString() }, ...prev]);
                 break;
             }
+
+            // Deduct credit BEFORE submission
+            const creditOk = await deductOneCredit();
+            if (!creditOk) {
+                creditsExhausted = true;
+                addLog('error', `⛔ Submission stopped at #${i + 1} — credits exhausted. Please purchase credits.`);
+                break;
+            }
+
             try {
                 if (form.formSource === 'microsoft') {
                     throw new Error("Microsoft Forms are not supported in this interface.");
@@ -283,22 +306,17 @@ export const WeightedAutomation: React.FC<WeightedAutomationProps> = ({ form, on
                 await new Promise(resolve => setTimeout(resolve, 500));
                 addLog('success', `Submission #${i + 1} finalized successfully`);
                 successCount++;
-                pendingDeductions++;
-                if (pendingDeductions === 5) {
-                    await performDeduction(5);
-                    pendingDeductions = 0;
-                }
             } catch (e) {
                 addLog('error', `Submission #${i + 1} failed to reach server`);
             }
             setProgress(i + 1);
-            if (i < targetCount - 1 && !stopRequested.current) {
+            if (i < targetCount - 1 && !stopRequested.current && !creditsExhausted) {
                 await new Promise(resolve => setTimeout(resolve, 2000));
             }
         }
 
-        if (pendingDeductions > 0) {
-            await performDeduction(pendingDeductions);
+        if (creditsExhausted) {
+            addLog('error', '💳 Credits exhausted — automation halted. Please purchase credits to continue.');
         }
         await new Promise(resolve => setTimeout(resolve, 500));
         setIsRunning(false);

@@ -40,7 +40,7 @@ const mapMsQuestionType = (msType: string, questionInfo: any): QuestionType => {
 
   const hasRows = questionInfo?.Rows || questionInfo?.rows;
   const hasCols = questionInfo?.Columns || questionInfo?.columns || questionInfo?.Choices || questionInfo?.choices;
-  
+
   // Check for matrix/likert first even in qInfo as some "Choice" types are grids
   if (t.includes('matrix') || t.includes('likert') || (hasRows && hasCols)) {
     return QuestionType.MULTIPLE_CHOICE_GRID;
@@ -202,17 +202,17 @@ export const parseMicrosoftFormData = (
         if (parentItem) {
           // Promote parent to a grid if it isn't one already
           if (parentItem.type !== QuestionType.MULTIPLE_CHOICE_GRID && parentItem.type !== QuestionType.CHECKBOX_GRID) {
-             parentItem.type = item.type === QuestionType.CHECKBOXES ? QuestionType.CHECKBOX_GRID : QuestionType.MULTIPLE_CHOICE_GRID;
+            parentItem.type = item.type === QuestionType.CHECKBOXES ? QuestionType.CHECKBOX_GRID : QuestionType.MULTIPLE_CHOICE_GRID;
           }
           // If the Light API parent has `options` but no `columns`, move the options into columns!
           if (!parentItem.columns || parentItem.columns.length === 0) {
-             parentItem.columns = [...(parentItem.options || [])];
-             parentItem.options = [];
+            parentItem.columns = [...(parentItem.options || [])];
+            parentItem.options = [];
           }
           // Add this child as a row to the parent (if not already appended by Standard parsing)
           if (!parentItem.rows) parentItem.rows = [];
           if (!parentItem.rows.some(r => r.id === qIdStr)) {
-             parentItem.rows.push({ label: item.title || `Row ${parentItem.rows.length + 1}`, id: qIdStr });
+            parentItem.rows.push({ label: item.title || `Row ${parentItem.rows.length + 1}`, id: qIdStr });
           }
         } else {
           // Parent not parsed yet (came out of order), store in orphans
@@ -231,20 +231,20 @@ export const parseMicrosoftFormData = (
 
   // Final pass for any out-of-order orphaned children
   orphans.forEach(({ parentId, childItem }) => {
-     const parentItem = itemMap.get(parentId);
-     if (parentItem) {
-        if (parentItem.type !== QuestionType.MULTIPLE_CHOICE_GRID && parentItem.type !== QuestionType.CHECKBOX_GRID) {
-            parentItem.type = childItem.type === QuestionType.CHECKBOXES ? QuestionType.CHECKBOX_GRID : QuestionType.MULTIPLE_CHOICE_GRID;
-        }
-        if (!parentItem.columns || parentItem.columns.length === 0) {
-            parentItem.columns = [...(parentItem.options || [])];
-            parentItem.options = [];
-        }
-        if (!parentItem.rows) parentItem.rows = [];
-        if (!parentItem.rows.some((r: any) => r.id === childItem.id)) {
-            parentItem.rows.push({ label: childItem.title || `Row ${parentItem.rows.length + 1}`, id: childItem.id });
-        }
-     }
+    const parentItem = itemMap.get(parentId);
+    if (parentItem) {
+      if (parentItem.type !== QuestionType.MULTIPLE_CHOICE_GRID && parentItem.type !== QuestionType.CHECKBOX_GRID) {
+        parentItem.type = childItem.type === QuestionType.CHECKBOXES ? QuestionType.CHECKBOX_GRID : QuestionType.MULTIPLE_CHOICE_GRID;
+      }
+      if (!parentItem.columns || parentItem.columns.length === 0) {
+        parentItem.columns = [...(parentItem.options || [])];
+        parentItem.options = [];
+      }
+      if (!parentItem.rows) parentItem.rows = [];
+      if (!parentItem.rows.some((r: any) => r.id === childItem.id)) {
+        parentItem.rows.push({ label: childItem.title || `Row ${parentItem.rows.length + 1}`, id: childItem.id });
+      }
+    }
   });
 
   return {

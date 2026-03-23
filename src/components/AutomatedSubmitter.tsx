@@ -73,6 +73,18 @@ export const AutomatedSubmitter: React.FC<AutomatedSubmitterProps> = ({ form, an
       alert("Error: Cannot submit. Form action URL missing.");
       return;
     }
+
+    // ── Upfront credit check ──────────────────────────────────────
+    if (user?.role !== 'admin') {
+      const availableCredits = user?.credits ?? 0;
+      if (availableCredits < targetCount) {
+        alert(
+          `⚠️ Insufficient credits!\n\nYou have ${availableCredits} credit(s) but requested ${targetCount} submission(s).\n\nPlease purchase more credits to continue.`
+        );
+        return;
+      }
+    }
+
     setIsSubmitting(true);
     stopRequested.current = false;
     setLogs([]);
@@ -89,16 +101,18 @@ export const AutomatedSubmitter: React.FC<AutomatedSubmitterProps> = ({ form, an
     }
 
     let successCount = 0;
-    let pendingDeductions = 0;
+    let creditsExhausted = false;
 
-    const performDeduction = async (count: number) => {
-      if (user?.role === 'admin') return;
+    const deductOneCredit = async (): Promise<boolean> => {
+      if (user?.role === 'admin') return true;
       try {
-        const result = await creditsApi.deduct(count);
-        addLog('success', `💳 ${count} credits deducted incrementally. Balance: ${result.credits}`);
+        const result = await creditsApi.deduct(1);
+        addLog('success', `💳 1 credit deducted. Remaining balance: ${result.credits}`);
         refreshCredits();
+        return true;
       } catch (err: any) {
-        addLog('error', `Incremental credit deduction failed: ${err.error || 'Unknown error'}`);
+        addLog('error', '🚫 Credits exhausted! Please purchase credits to continue.');
+        return false;
       }
     };
 
@@ -107,6 +121,15 @@ export const AutomatedSubmitter: React.FC<AutomatedSubmitterProps> = ({ form, an
         setLogs(prev => [{ id: i, status: 'stopped', message: "Stopped by user", time: new Date().toLocaleTimeString() }, ...prev]);
         break;
       }
+
+      // Deduct credit BEFORE submission
+      const creditOk = await deductOneCredit();
+      if (!creditOk) {
+        creditsExhausted = true;
+        addLog('error', `⛔ Submission stopped at #${i} — credits exhausted. Please purchase credits.`);
+        break;
+      }
+
       try {
         const body = generateFormData();
         await fetch(form.actionUrl, {
@@ -118,22 +141,19 @@ export const AutomatedSubmitter: React.FC<AutomatedSubmitterProps> = ({ form, an
         await delay(500);
         addLog('success', `Submission #${i} finalized successfully`);
         successCount++;
-        pendingDeductions++;
-        if (pendingDeductions === 5) {
-          await performDeduction(5);
-          pendingDeductions = 0;
-        }
       } catch (error) {
         addLog('error', `Submission #${i} failed: Network error`);
       }
       setProgress(i);
-      if (i < targetCount && !stopRequested.current) {
+      if (i < targetCount && !stopRequested.current && !creditsExhausted) {
         await delay(2000);
       }
     }
-    if (pendingDeductions > 0) {
-      await performDeduction(pendingDeductions);
+
+    if (creditsExhausted) {
+      addLog('error', '💳 Credits exhausted — automation halted. Please purchase credits to continue.');
     }
+
     await delay(500);
     setIsSubmitting(false);
   };
