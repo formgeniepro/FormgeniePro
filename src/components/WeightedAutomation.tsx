@@ -286,7 +286,11 @@ export const WeightedAutomation: React.FC<WeightedAutomationProps> = ({ form, on
                             });
                         } else {
                             const scheduledValue = batchSchedule[item.id]?.[i];
-                            if (scheduledValue !== undefined && scheduledValue !== "N/A" && item.submissionId) {
+                            const isTextPlaceholder = scheduledValue === "N/A";
+                            const shouldSubmit = scheduledValue !== undefined &&
+                                (!isTextPlaceholder || item.required) &&
+                                item.submissionId;
+                            if (shouldSubmit) {
                                 if (Array.isArray(scheduledValue)) {
                                     scheduledValue.forEach(val => formData.append(`entry.${item.submissionId}`, val));
                                 } else {
